@@ -23,7 +23,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename={(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
@@ -44,4 +44,5 @@ const App = () => (
 );
 
 export default App;
+
 
