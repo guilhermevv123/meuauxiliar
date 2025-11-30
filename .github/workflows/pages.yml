@@ -24,7 +24,19 @@ jobs:
           printf "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}\n" >> .env
           printf "VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}\n" >> .env
       - run: npm ci
-      - run: npm run build -- --base=/meuauxiliar/
+      - name: Echo build context
+        run: |
+          node -v
+          npm -v
+          ls -la
+      - run: npm run build -- --base=/
+      - name: Inspect built index
+        run: |
+          head -n 60 dist/index.html || sed -n '1,60p' dist/index.html || true
+      - name: Disable Jekyll
+        run: echo > dist/.nojekyll
+      - name: Create CNAME for custom domain
+        run: echo "meuauxiliar.com" > dist/CNAME
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3
         with:
