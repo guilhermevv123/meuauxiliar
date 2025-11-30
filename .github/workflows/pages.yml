@@ -33,6 +33,15 @@ jobs:
       - name: Inspect built index
         run: |
           head -n 60 dist/index.html || sed -n '1,60p' dist/index.html || true
+      - name: Verify base paths
+        run: |
+          echo "Listing dist/assets:" && ls -la dist/assets || true
+          if grep -q "/meuauxiliar/" dist/index.html; then
+            echo "ERROR: index.html still references '/meuauxiliar/' base";
+            exit 1;
+          else
+            echo "OK: index.html uses root '/assets/' paths";
+          fi
       - name: Disable Jekyll
         run: echo > dist/.nojekyll
       - name: Create CNAME for custom domain
