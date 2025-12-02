@@ -4,91 +4,66 @@ import { Link } from "react-router-dom";
 import logoFull from "@/assets/logo-full.png";
 import screenshot1 from "@/assets/screenshot-1.png";
 import screenshot2 from "@/assets/screenshot-2.png";
+import Navbar from "@/components/Navbar";
 
 const Landing = () => {
   return (
     <div className="min-h-screen bg-gradient-dark">
-      {/* Header */}
-      <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-            <img src={logoFull} alt="Meu Auxiliar" className="h-10" />
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link to="/auth">
-              <Button variant="ghost" className="hidden sm:inline-flex">
-                Entrar
-              </Button>
-            </Link>
-            <Link to="/auth">
-              <Button className="bg-gradient-purple hover:scale-105 transition-transform">
-                Começar Grátis
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* Navbar */}
+      <Navbar />
 
       {/* Hero Section (estilo mais comercial) */}
-      <section className="container mx-auto px-4 py-28 md:py-32 text-center relative overflow-hidden min-h-[80vh] flex items-center">
-        {/* Background gradient effects */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl opacity-50"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl opacity-50"></div>
-        </div>
+      <section className="container mx-auto px-4 py-28 md:py-32 relative overflow-hidden min-h-[80vh] flex items-center">
+        {/* Removed decorative background for a clean hero focused on the robot */}
 
-        <div className="max-w-5xl mx-auto space-y-10 animate-fade-in relative z-10">
-          {/* Logo centralizada */}
-          <div className="flex justify-center mb-6">
-            <img src={logoFull} alt="Meu Auxiliar" className="h-24 md:h-28 drop-shadow-2xl" />
-          </div>
-
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight">
-            <span className="bg-gradient-purple bg-clip-text text-transparent">Vendas e Finanças</span> no piloto automático
-          </h1>
-          
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Capture leads, acompanhe suas vendas e organize finanças em um painel moderno. Tudo simples, rápido e integrado.
-          </p>
-          
-          <div className="flex gap-4 justify-center flex-wrap pt-6">
-            <Link to="/auth">
-              <Button size="lg" className="bg-gradient-purple shadow-glow hover:scale-105 transition-transform text-lg px-10 py-7 rounded-xl">
-                Começar agora
-                <ArrowRight className="ml-2 h-5 w-5" />
+        <div className="max-w-5xl mx-auto w-full animate-fade-in relative z-10">
+          <div className="flex flex-col items-center text-center space-y-6">
+            <h1 className="font-extrabold tracking-tight leading-tight text-5xl md:text-6xl lg:text-7xl">
+              Tenha um auxiliar pessoal
+              <span className="block bg-gradient-purple bg-clip-text text-transparent">Trabalhando 24h por dia pra você</span>
+            </h1>
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl">
+              Você ainda tá tentando lembrar tudo de cabeça ou não sabe pra onde está indo seu dinheiro?
+            </p>
+            <div className="flex gap-4 justify-center flex-wrap pt-1">
+              <Link to="/auth" className="group">
+                <Button size="lg" className="bg-gradient-purple shadow-glow transition-transform text-lg px-10 py-7 rounded-xl group-hover:scale-105 active:scale-95">
+                  Começar agora
+                  <ArrowRight className="ml-2 h-5 w-5 transition transform group-hover:translate-x-1" />
+                </Button>
+              </Link>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-2 hover:bg-primary/5 text-lg px-10 py-7 rounded-xl active:scale-95"
+                onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                Saiba mais
               </Button>
-            </Link>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="border-2 hover:bg-primary/5 text-lg px-10 py-7 rounded-xl"
-              onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Saiba mais
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground pt-4">
-            <Zap className="w-4 h-4 text-primary" />
-            <span>Cadastro gratuito • Sem cartão de crédito</span>
+              
+            </div>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Zap className="w-4 h-4 text-primary" />
+              <span>Cadastro gratuito • Sem cartão de crédito</span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Faixa de benefícios curtos */}
+      {/* Faixa de benefícios curtos alinhados ao Meu Auxiliar */}
       <section className="w-full bg-card/30 border-y border-border/50">
         <div className="container mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
           <div className="space-y-1">
-            <p className="text-2xl font-bold">+ Produtividade</p>
-            <p className="text-muted-foreground">Automação e visão clara do seu funil</p>
+            <p className="text-2xl font-bold">+ Lembretes inteligentes</p>
+            <p className="text-muted-foreground">Agenda automática de compromissos e prazos</p>
           </div>
           <div className="space-y-1">
-            <p className="text-2xl font-bold">+ Vendas</p>
-            <p className="text-muted-foreground">Captura e nutrição de leads</p>
+            <p className="text-2xl font-bold">+ Registro automático</p>
+            <p className="text-muted-foreground">Gastos e entradas pelo WhatsApp, sem planilhas</p>
           </div>
           <div className="space-y-1">
-            <p className="text-2xl font-bold">+ Controle</p>
-            <p className="text-muted-foreground">Financeiro e agenda integrados</p>
+            <p className="text-2xl font-bold">+ Seu dinheiro no controle</p>
+            <p className="text-muted-foreground">Saldo, entradas e saídas em um dashboard claro</p>
           </div>
         </div>
       </section>
