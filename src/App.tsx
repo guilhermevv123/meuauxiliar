@@ -18,7 +18,6 @@ import AdminAuth from "./pages/admin/AdminAuth";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import Crm from "./pages/admin/Crm";
-import Billing from "./pages/admin/Billing";
 import Sales from "./pages/admin/Sales";
 import Conversion from "./pages/admin/Conversion";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -35,7 +34,7 @@ const AnimatedRoutes = () => {
           <Route path="/admin" element={<AdminAuth />} />
           <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
           <Route path="/admin/crm" element={<AdminProtectedRoute><Crm /></AdminProtectedRoute>} />
-          <Route path="/admin/faturamento" element={<AdminProtectedRoute><Billing /></AdminProtectedRoute>} />
+          
           <Route path="/admin/vendas" element={<AdminProtectedRoute><Sales /></AdminProtectedRoute>} />
           <Route path="/admin/conversao" element={<AdminProtectedRoute><Conversion /></AdminProtectedRoute>} />
           <Route path="/auth" element={<Auth />} />

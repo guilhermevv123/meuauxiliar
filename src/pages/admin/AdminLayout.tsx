@@ -26,7 +26,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         <nav className="space-y-1">
           <NavItem to="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <NavItem to="/admin/crm" icon={Users} label="Clientes" />
-          <NavItem to="/admin/faturamento" icon={Wallet} label="Faturamento" />
+          
           <NavItem to="/admin/vendas" icon={ChartBar} label="Vendas" />
           <NavItem to="/admin/conversao" icon={PercentCircle} label="Conversão" />
         </nav>
@@ -47,4 +47,3 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default AdminLayout;
-

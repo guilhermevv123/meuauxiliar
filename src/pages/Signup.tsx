@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import logoFull from "@/assets/logo-full.png";
+import { supabase } from "@/lib/supabaseClient";
 
 const WEBHOOK_URL = "https://n8n-n8n-webhook.nyrnfd.easypanel.host/webhook/criacaodaconta";
 
@@ -51,6 +52,40 @@ const Signup = () => {
     }
     setIsLoading(true);
     try {
+      // Verificação de duplicidade no banco (email ou telefone já existente)
+      const emailTrim = form.email.trim();
+      const phoneClean = form.phone.replace(/[^0-9]/g, "");
+      let exists = false;
+      try {
+        const { data: byEmail } = await supabase
+          .from("clientes_meu_auxiliar")
+          .select("id")
+          .eq("email", emailTrim)
+          .limit(1)
+          .maybeSingle();
+        const { data: byPhone } = await supabase
+          .from("clientes_meu_auxiliar")
+          .select("id")
+          .eq("session_id", phoneClean)
+          .limit(1)
+          .maybeSingle();
+        if (byEmail || byPhone) exists = true;
+        if (!exists) {
+          const { data: byEmailCase } = await supabase
+            .from("clientes_meu_auxiliar")
+            .select("id")
+            .ilike("email", emailTrim)
+            .limit(1)
+            .maybeSingle();
+          if (byEmailCase) exists = true;
+        }
+      } catch {}
+      if (exists) {
+        toast.error("Já existe uma conta com este email ou telefone");
+        setIsLoading(false);
+        return;
+      }
+
       const payload = { ...form, phone: phoneClean, source: "app", created_at: new Date().toISOString() };
       const res = await fetch(WEBHOOK_URL, {
         method: "POST",
