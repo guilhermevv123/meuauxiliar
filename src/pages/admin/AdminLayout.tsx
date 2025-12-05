@@ -36,7 +36,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           </Button>
         </div>
       </aside>
-      <main className="bg-muted/20">
+      <main className="bg-white text-black">
         <header className="border-b border-border/40 px-6 py-4">
           <h1 className="text-xl font-bold">Painel Administrativo</h1>
         </header>

@@ -6,8 +6,7 @@ import { TransactionsTab } from "@/components/dashboard/tabs/TransactionsTab";
 import { CategoriesTab } from "@/components/dashboard/tabs/CategoriesTab";
 import { AgendaTab } from "@/components/dashboard/tabs/AgendaTab";
 import OnlyDebtsTab from "@/components/dashboard/tabs/OnlyDebtsTab";
-import FinancingTab from "@/components/dashboard/tabs/FinancingTab";
-import { LayoutDashboard, ArrowLeftRight, FolderKanban, Calendar, CreditCard, Building2 } from "lucide-react";
+import { LayoutDashboard, ArrowLeftRight, FolderKanban, Calendar, CreditCard } from "lucide-react";
 
 const Dashboard = () => {
   return (
@@ -48,12 +47,7 @@ const Dashboard = () => {
               >
                 <CreditCard className="h-5 w-5 transition-transform duration-300 group-hover:-rotate-12" />
               </TabsTrigger>
-              <TabsTrigger 
-                value="financing" 
-                className="group relative p-4 rounded-xl transition-all duration-500 text-purple-700 dark:text-purple-200 data-[state=active]:bg-gradient-to-br data-[state=active]:from-purple-600 data-[state=active]:via-purple-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_30px_rgba(168,85,247,0.6)] data-[state=active]:scale-110 hover:bg-purple-100/60 dark:hover:bg-white/10 hover:scale-105 hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] active:scale-95"
-              >
-                <Building2 className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-              </TabsTrigger>
+              
             </TabsList>
           </div>
 
@@ -77,9 +71,7 @@ const Dashboard = () => {
             <OnlyDebtsTab />
           </TabsContent>
           
-          <TabsContent value="financing">
-            <FinancingTab />
-          </TabsContent>
+          
         </Tabs>
       </div>
     </div>

@@ -6,7 +6,7 @@ import { formatCurrency } from "@/lib/formatters";
 import { AgendaDialog } from "../AgendaDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQuery } from "@tanstack/react-query";
-import { getLembretesByMonth, getLembretesSemData } from "@/lib/api";
+import { getLembretesByMonth, getLembretesSemData, cleanupOldLembretesSemData } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { addLembrete, updateLembrete, deleteLembrete, addLembreteSemData, updateLembreteSemData } from "@/lib/api";
 import { toast } from "sonner";
@@ -51,6 +51,12 @@ export const AgendaTab = () => {
     queryFn: () => getLembretesSemData(sessionId),
     enabled: !!sessionId,
   });
+
+  useEffect(() => {
+    if (sessionId) {
+      cleanupOldLembretesSemData(sessionId).catch(() => {});
+    }
+  }, [sessionId]);
 
   // Debug logs
   useEffect(() => {

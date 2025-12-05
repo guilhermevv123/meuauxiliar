@@ -258,6 +258,18 @@ export async function deleteLembrete(id: string) {
   if (error) throw error;
 }
 
+export async function cleanupOldLembretesSemData(sessionId: string) {
+  const sessionIdNum = BigInt(sessionId);
+  const threshold = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await supabase
+    .from('lembretes')
+    .delete()
+    .eq('session_id', sessionIdNum.toString())
+    .eq('"possui_data?"', 'nao')
+    .lt('criado_em', threshold);
+  if (error) throw error;
+}
+
 export async function updateClienteSenha(email: string, newPassword: string) {
   const { error } = await supabase
     .from('clientes_meu_auxiliar')
