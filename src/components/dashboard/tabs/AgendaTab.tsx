@@ -5,8 +5,8 @@ import { Clock, MapPin, Plus, Pencil, Trash2, MessageCircle } from "lucide-react
 import { formatCurrency } from "@/lib/formatters";
 import { AgendaDialog } from "../AgendaDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useQuery } from "@tanstack/react-query";
-import { getLembretesByMonth, getLembretesSemData, cleanupOldLembretesSemData } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getLembretesByMonth, getLembretesSemData, cleanupOldLembretesSemData, cleanupLembretesSemDataRpc } from "@/lib/api";
 import { getSession } from "@/lib/session";
 import { addLembrete, updateLembrete, deleteLembrete, addLembreteSemData, updateLembreteSemData } from "@/lib/api";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ export const AgendaTab = () => {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const sessionId = getSession()?.sessionId ?? "";
+  const queryClient = useQueryClient();
   const { data: lembretes = [] } = useQuery({
     queryKey: ["lembretes", sessionId, year, month],
     queryFn: () => getLembretesByMonth(sessionId, year, month),
@@ -54,7 +55,15 @@ export const AgendaTab = () => {
 
   useEffect(() => {
     if (sessionId) {
-      cleanupOldLembretesSemData(sessionId).catch(() => {});
+      // tenta limpeza via RPC global; se não existir a função, faz fallback por sessão
+      cleanupLembretesSemDataRpc()
+        .catch(async (e) => {
+          if (!String(e?.message).includes('Could not find the function')) return;
+          await cleanupOldLembretesSemData(sessionId);
+        })
+        .finally(() => {
+          queryClient.invalidateQueries({ queryKey: ["lembretes_sem_data", sessionId] });
+        });
     }
   }, [sessionId]);
 
@@ -128,10 +137,12 @@ export const AgendaTab = () => {
         await updateLembrete(appointment.id, { title: appointment.title, dateIso, antecedencia: null });
         setAppointments(appointments.map(a => a.id === appointment.id ? appointment : a));
         toast.success("Compromisso atualizado");
+        queryClient.invalidateQueries({ queryKey: ["lembretes", sessionId, year, month] });
       } else {
         await addLembrete({ sessionId, title: appointment.title, dateIso, antecedencia: null });
         setAppointments([...appointments, { ...appointment, id: String(Date.now()) }]);
         toast.success("Compromisso criado");
+        queryClient.invalidateQueries({ queryKey: ["lembretes", sessionId, year, month] });
       }
     } catch (e) {
       toast.error("Falha ao salvar compromisso");
@@ -153,6 +164,7 @@ export const AgendaTab = () => {
     if (appointmentToDelete) {
       try { await deleteLembrete(appointmentToDelete); toast.success("Compromisso excluído"); } catch { toast.error("Falha ao excluir"); }
       setAppointments(appointments.filter(a => a.id !== appointmentToDelete));
+      queryClient.invalidateQueries({ queryKey: ["lembretes", sessionId, year, month] });
       setAppointmentToDelete(null);
       setDeleteDialogOpen(false);
     }
@@ -170,8 +182,7 @@ export const AgendaTab = () => {
       }
       setEditingLembrete(undefined);
       setLembreteDialogOpen(false);
-      // Refetch lembretes sem data
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ["lembretes_sem_data", sessionId] });
     } catch (e) {
       toast.error("Falha ao salvar lembrete");
     }
@@ -192,13 +203,26 @@ export const AgendaTab = () => {
       try {
         await deleteLembrete(lembreteToDelete);
         toast.success("Lembrete excluído");
-        window.location.reload();
+        queryClient.invalidateQueries({ queryKey: ["lembretes_sem_data", sessionId] });
       } catch {
         toast.error("Falha ao excluir");
       }
       setLembreteToDelete(null);
       setDeleteLembreteDialogOpen(false);
     }
+  };
+
+  const exportCsv = () => {
+    const header = "tipo,id,titulo,data,hora,local\n";
+    const lines1 = appointmentsInRange.map(a => `compromisso,${a.id},${a.title.replace(/,/g,' ')},${a.date},${a.time},${(a.location||'').replace(/,/g,' ')}`);
+    const lines2 = lembretesSemData.map((l:any) => `lembrete,${l.id},${String(l.descricao||'').replace(/,/g,' ')},${new Date(l.criado_em).toLocaleDateString('pt-BR')},,`);
+    const blob = new Blob([header + [...lines1, ...lines2].join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `agenda_${year}-${String(month).padStart(2,'0')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -249,6 +273,9 @@ export const AgendaTab = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="flex justify-end mb-3">
+              <Button variant="outline" size="sm" onClick={exportCsv}>Exportar CSV</Button>
+            </div>
             {appointmentsInRange.length === 0 ? (
               <div className="text-center py-8 space-y-3">
                 <div className="text-4xl">📅</div>

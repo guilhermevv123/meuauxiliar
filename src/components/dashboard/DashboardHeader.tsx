@@ -12,7 +12,7 @@ export const DashboardHeader = () => {
         <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Light mode: white logo enviada; Dark mode: logo atual */}
           <img src={logoFull} alt="Meu Auxiliar" className="h-12 sm:h-14 dark:hidden object-contain" />
-          <img src={logoIcon} alt="Meu Auxiliar" className="h-12 sm:h-14 hidden dark:block object-contain" />
+          <img src={logoIcon} alt="Meu Auxiliar" className="h-12 sm:h-14 hidden dark:block object-contain transform scale-[2]" />
           <span className="text-base sm:text-lg font-bold hidden xs:inline">Meu Auxiliar</span>
         </div>
         <div className="flex items-center gap-1 sm:gap-1.5">

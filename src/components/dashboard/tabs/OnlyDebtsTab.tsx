@@ -12,7 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { addFinanceiro, getDividasFinanciamentos, type FinanceRow } from "@/lib/api";
+import { addFinanceiro, getDividasFinanciamentos, getDividaTotal, getDividaPrimeira, upsertDividaTotal, upsertDividaPrimeira, type FinanceRow } from "@/lib/api";
 
 type Debt = {
   id: number;
@@ -50,6 +50,18 @@ export const OnlyDebtsTab = () => {
   const { data: financeData = [], isLoading, refetch } = useQuery({
     queryKey: ["debts_finance", sessionId],
     queryFn: () => getDividasFinanciamentos(sessionId),
+    enabled: !!sessionId,
+  });
+
+  const { data: totalInfo } = useQuery({
+    queryKey: ["divida_total", sessionId],
+    queryFn: () => getDividaTotal(sessionId),
+    enabled: !!sessionId,
+  });
+
+  const { data: primeiraInfo } = useQuery({
+    queryKey: ["divida_primeira", sessionId],
+    queryFn: () => getDividaPrimeira(sessionId),
     enabled: !!sessionId,
   });
 
@@ -172,6 +184,33 @@ export const OnlyDebtsTab = () => {
     return { total, paid, remaining, valuePerInstallment, nextDueDate };
   };
 
+  const syncDividaTotal = async () => {
+    try {
+      await upsertDividaTotal(sessionId, totalGeral);
+      queryClient.invalidateQueries({ queryKey: ["divida_total", sessionId] });
+      toast.success("Total de dívidas sincronizado");
+    } catch (e) {
+      toast.error("Falha ao sincronizar total");
+    }
+  };
+
+  const syncDividaPrimeira = async () => {
+    try {
+      // pegar o próximo vencimento mais próximo entre dívidas a pagar
+      const candidates = debts
+        .map(d => ({ d, info: calculateInstallmentInfo(d) }))
+        .filter(x => x.d.a_pagar === 'sim' && x.info.nextDueDate);
+      const next = candidates.sort((a,b) => +a.info.nextDueDate! - +b.info.nextDueDate!)[0];
+      const dateIso = next?.info.nextDueDate ? new Date(next.info.nextDueDate).toISOString() : null;
+      const valor = next?.info.valuePerInstallment ?? null;
+      await upsertDividaPrimeira(sessionId, dateIso, valor);
+      queryClient.invalidateQueries({ queryKey: ["divida_primeira", sessionId] });
+      toast.success("Primeira parcela sincronizada");
+    } catch (e) {
+      toast.error("Falha ao sincronizar primeira parcela");
+    }
+  };
+
   const handleEditDebt = (debt: Debt) => {
     setSelectedDebt(debt);
     setIsDialogOpen(true);
@@ -189,8 +228,10 @@ export const OnlyDebtsTab = () => {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         debt={selectedDebt as any}
-        onSuccess={() => {
-          refetch();
+        onSuccess={async () => {
+          await refetch();
+          await syncDividaTotal();
+          await syncDividaPrimeira();
           setSelectedDebt(null);
         }}
       />
@@ -286,6 +327,42 @@ export const OnlyDebtsTab = () => {
           <CardContent>
             <div className="text-3xl font-bold">{formatCurrency(totalGeral)}</div>
             <p className="text-xs text-muted-foreground mt-1">Soma de todas as dívidas</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Integração com tabelas auxiliares */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="shadow-luxury">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <DollarSign className="h-4 w-4" /> Total registrado (tabela divida_total)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(Number(totalInfo?.valor_total || 0))}</div>
+            {totalInfo?.atualizado_em && (
+              <p className="text-xs text-muted-foreground mt-1">Atualizado em {formatDate(String(totalInfo.atualizado_em))}</p>
+            )}
+            <div className="mt-3">
+              <Button variant="outline" size="sm" onClick={syncDividaTotal}>Sincronizar com soma atual</Button>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-luxury">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Calendar className="h-4 w-4" /> Primeira parcela (tabela divida_primeira)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {primeiraInfo?.primeira_parcela_em ? formatDate(String(primeiraInfo.primeira_parcela_em)) : '—'}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Valor: {formatCurrency(Number(primeiraInfo?.valor_primeira || 0))}</p>
+            <div className="mt-3">
+              <Button variant="outline" size="sm" onClick={syncDividaPrimeira}>Definir pela próxima parcela</Button>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -20,6 +20,52 @@ export type FinanceRow = {
   transacao_fixa?: string | null; // 'sim' ou 'nao'
 };
 
+export async function getDividaTotal(sessionId: string) {
+  const sessionIdNum = BigInt(sessionId);
+  const { data, error } = await supabase
+    .from('divida_total')
+    .select('id, session_id, valor_total, atualizado_em')
+    .eq('session_id', sessionIdNum.toString())
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function getDividaPrimeira(sessionId: string) {
+  const sessionIdNum = BigInt(sessionId);
+  const { data, error } = await supabase
+    .from('divida_primeira')
+    .select('id, session_id, primeira_parcela_em, valor_primeira')
+    .eq('session_id', sessionIdNum.toString())
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function upsertDividaTotal(sessionId: string, valorTotal: number) {
+  const sessionIdNum = BigInt(sessionId);
+  const payload = {
+    session_id: sessionIdNum.toString(),
+    valor_total: valorTotal,
+    atualizado_em: new Date().toISOString(),
+  } as any;
+  const { error } = await supabase.from('divida_total').upsert(payload, { onConflict: 'session_id' });
+  if (error) throw error;
+}
+
+export async function upsertDividaPrimeira(sessionId: string, primeiraDataIso: string | null, valorPrimeira: number | null) {
+  const sessionIdNum = BigInt(sessionId);
+  const payload = {
+    session_id: sessionIdNum.toString(),
+    primeira_parcela_em: primeiraDataIso,
+    valor_primeira: valorPrimeira ?? 0,
+  } as any;
+  const { error } = await supabase.from('divida_primeira').upsert(payload, { onConflict: 'session_id' });
+  if (error) throw error;
+}
+
 export type LembreteRow = {
   id: string;
   session_id: string;
@@ -95,9 +141,9 @@ export async function getLembretesSemData(sessionId: string) {
   const sessionIdNum = BigInt(sessionId);
   const { data, error } = await supabase
     .from('lembretes')
-    .select('id, session_id, descricao, criado_em, "possui_data?"')
+    .select('id, session_id, descricao, criado_em, possui_data')
     .eq('session_id', sessionIdNum.toString())
-    .eq('"possui_data?"', 'nao')
+    .eq('possui_data', 'nao')
     .order('criado_em', { ascending: false });
   
   console.log('✅ getLembretesSemData - Result:', { 
@@ -174,7 +220,7 @@ export async function addLembrete(params: {
       descricao: title,
       data_lembrete: dateIso,
       antecedencia: antecedencia ?? null,
-      "possui_data?": "sim"
+      possui_data: "sim"
     });
   if (error) throw error;
 }
@@ -192,7 +238,7 @@ export async function addLembreteSemData(params: {
       descricao: title,
       data_lembrete: null,
       antecedencia: null,
-      "possui_data?": "nao"
+      possui_data: "nao"
     });
   if (error) throw error;
 }
@@ -265,9 +311,14 @@ export async function cleanupOldLembretesSemData(sessionId: string) {
     .from('lembretes')
     .delete()
     .eq('session_id', sessionIdNum.toString())
-    .eq('"possui_data?"', 'nao')
+    .eq('possui_data', 'nao')
     .lt('criado_em', threshold);
   if (error) throw error;
+}
+
+export async function cleanupLembretesSemDataRpc() {
+  const { error } = await supabase.rpc('cleanup_lembretes_sem_data');
+  if (error && !String(error.message).includes('Could not find the function')) throw error;
 }
 
 export async function updateClienteSenha(email: string, newPassword: string) {

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/formatters";
-import { ArrowUpCircle, ArrowDownCircle, Plus, Pencil, Trash2, Filter, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Plus, Pencil, Trash2, Filter, CheckCircle2, Clock, XCircle, DollarSign } from "lucide-react";
 import { TransactionDialog } from "../TransactionDialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -91,6 +91,25 @@ export const TransactionsTab = () => {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteFinanceiro(id),
+    onSuccess: (_, id) => {
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
+      queryClient.invalidateQueries({ queryKey: ["financeiro-list", sessionId, year, month] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro", sessionId, year, month] });
+      queryClient.invalidateQueries({
+        predicate: (q) => {
+          const key0 = q.queryKey?.[0];
+          return typeof key0 === 'string' && key0.startsWith('financeiro');
+        }
+      });
+      toast.success("Transação excluída");
+    },
+    onError: (err: any) => {
+      toast.error("Erro ao excluir transação" + (err?.message ? ": " + err.message : ""));
+    }
+  });
+
   const handleSave = async (transaction: Omit<UITx, 'id'> & { id?: number }) => {
     // Convert UI to API schema
     const [dd, mm, yyyy] = transaction.date.split('/');
@@ -138,12 +157,9 @@ export const TransactionsTab = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (transactionToDelete) {
-      deleteFinanceiro(transactionToDelete).catch(() => {}).finally(() => {
-        setTransactions(transactions.filter(t => t.id !== transactionToDelete));
-        refetch();
-      });
+      await deleteMutation.mutateAsync(transactionToDelete);
       setTransactionToDelete(null);
       setDeleteDialogOpen(false);
     }
@@ -291,6 +307,22 @@ export const TransactionsTab = () => {
                   {formatCurrency(Math.abs(transaction.value))}
                 </p>
                 <div className="flex gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (transaction.type === 'despesa') {
+                        togglePagoMutation.mutate({ id: transaction.id, currentStatus: transaction.pago });
+                      } else {
+                        toggleRecebidoMutation.mutate({ id: transaction.id, currentStatus: transaction.recebido });
+                      }
+                    }} 
+                    className="h-8 w-8 p-0"
+                    title={transaction.type === 'despesa' ? 'Alternar pago' : 'Alternar recebido'}
+                  >
+                    <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => handleEdit(transaction)} className="h-8 w-8 p-0">
                     <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </Button>

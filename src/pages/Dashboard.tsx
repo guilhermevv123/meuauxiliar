@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { OverviewTab } from "@/components/dashboard/tabs/OverviewTab";
@@ -9,12 +10,26 @@ import OnlyDebtsTab from "@/components/dashboard/tabs/OnlyDebtsTab";
 import { LayoutDashboard, ArrowLeftRight, FolderKanban, Calendar, CreditCard } from "lucide-react";
 
 const Dashboard = () => {
+  const queryClient = useQueryClient();
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader />
 
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs 
+          defaultValue="overview" 
+          className="w-full"
+          onValueChange={(val) => {
+            if (val === 'overview') {
+              queryClient.invalidateQueries({
+                predicate: (q) => {
+                  const key0 = q.queryKey?.[0];
+                  return typeof key0 === 'string' && key0.startsWith('financeiro');
+                }
+              });
+            }
+          }}
+        >
           <div className="relative mb-6 sm:mb-10">
             <TabsList className="flex items-center gap-2 p-3 overflow-x-auto overflow-y-hidden rounded-2xl bg-gradient-to-r from-amber-50/90 via-purple-50/80 to-amber-50/90 dark:from-slate-900/50 dark:via-purple-900/30 dark:to-slate-900/50 backdrop-blur-2xl border border-purple-300/40 dark:border-purple-500/20 shadow-[0_8px_32px_0_rgba(168,85,247,0.12)] dark:shadow-[0_8px_32px_0_rgba(168,85,247,0.15)] scrollbar-hide scroll-smooth">
               <TabsTrigger 

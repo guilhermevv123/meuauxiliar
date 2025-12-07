@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import logoFull from "@/assets/logo-full.png";
 import { supabase } from "@/lib/supabaseClient";
+import { requestPhoneCode, verifyPhoneCode, normalizePhone } from "@/lib/phoneVerification";
 
 const WEBHOOK_URL = "https://n8n-n8n-webhook.nyrnfd.easypanel.host/webhook/criacaodaconta";
 
@@ -17,25 +18,19 @@ const Signup = () => {
   const [form, setForm] = useState({
     name: "",
     email: "",
-    phone: "",
+    phone: "559",
     password: "",
+    code: "",
   });
 
   const formatPhone = (raw: string) => {
     let digits = raw.replace(/[^0-9]/g, "");
-    if (!digits.startsWith("55")) digits = "55" + digits; // força prefixo 55
-    // limita a 55 + DDD(2) + número (exatos 8 dígitos): 55 + 10 = 12 dígitos
-    digits = digits.slice(0, 12);
+    if (!digits.startsWith("55")) digits = "55" + digits;
+    digits = digits.length >= 13 ? digits.slice(0,13) : digits.slice(0,12);
     const cc = "55";
-    const ddd = digits.slice(2, 4);
+    const ddd = digits.slice(2,4);
     const rest = digits.slice(4);
-    let left = rest;
-    let part1 = left.slice(0, Math.min(4, left.length));
-    let part2 = left.slice(4, Math.min(8, left.length));
-    const hasDDD = ddd.length > 0;
-    const hasPart1 = part1.length > 0;
-    const hasPart2 = part2.length > 0;
-    return `${cc}${hasDDD ? ` ${ddd}` : ""}${hasPart1 ? ` ${part1}` : ""}${hasPart2 ? `-${part2}` : ""}`.trim();
+    return `${cc}${ddd?` ${ddd}`:""}${rest?` ${rest}`:""}`.trim();
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -45,16 +40,16 @@ const Signup = () => {
       return;
     }
     // validação simples de telefone no formato 55 XX XXXX-XXXX (aceita variações com espaço ou traço)
-    const phoneClean = form.phone.replace(/[^0-9]/g, "");
-    if (!phoneClean.startsWith("55") || phoneClean.length !== 12) {
-      toast.error("Telefone no formato 55 XX XXXX-XXXX (8 dígitos no número)");
+    const phoneClean = normalizePhone(form.phone);
+    if (!(phoneClean.length === 12 || phoneClean.length === 13)) {
+      toast.error("Formato: 55 DD + número (8 ou 9 dígitos)");
       return;
     }
     setIsLoading(true);
     try {
       // Verificação de duplicidade no banco (email ou telefone já existente)
       const emailTrim = form.email.trim();
-      const phoneClean = form.phone.replace(/[^0-9]/g, "");
+      const phoneClean = normalizePhone(form.phone);
       let exists = false;
       try {
         const { data: byEmail } = await supabase
@@ -82,6 +77,18 @@ const Signup = () => {
       } catch {}
       if (exists) {
         toast.error("Já existe uma conta com este email ou telefone");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!form.code.trim()) {
+        toast.error("Digite o código enviado para seu telefone");
+        setIsLoading(false);
+        return;
+      }
+      const ok = await verifyPhoneCode(form.phone, form.code.trim());
+      if (!ok) {
+        toast.error("Código inválido ou expirado");
         setIsLoading(false);
         return;
       }
@@ -132,17 +139,36 @@ const Signup = () => {
               <Input id="signup-email" type="email" placeholder="seu@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="signup-phone">Telefone</Label>
-              <Input 
-                id="signup-phone"
-                placeholder="55 XX XXXX-XXXX"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })}
-                inputMode="numeric"
-                pattern="[0-9\\s-]*"
-                maxLength={18}
-                required 
-              />
+          <Label htmlFor="signup-phone">Telefone</Label>
+          <Input 
+            id="signup-phone"
+            placeholder="55 DD 9 XXXXXXXX"
+            value={formatPhoneBR(form.phone)}
+            onChange={(e) => {
+              let d = e.target.value.replace(/[^0-9]/g, "");
+              if (!d.startsWith("55")) d = "55" + d;
+              if (d.length >= 5 && d.charAt(4) === '9') d = d.slice(0,4) + d.slice(5); // remove 9 após DDD do estado
+              d = d.slice(0, 12); // 55 + DD + 8 dígitos
+              setForm({ ...form, phone: d });
+            }}
+            inputMode="numeric"
+            pattern="[0-9\\s]*"
+            maxLength={16}
+            required 
+          />
+          <div className="flex gap-2 mt-2">
+            <Input id="signup-code" placeholder="Código" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} className="flex-1" />
+            <Button type="button" variant="outline" onClick={async () => {
+              try {
+                const phoneClean = normalizePhone(form.phone);
+                if (!(phoneClean.length === 12 || phoneClean.length === 13)) { toast.error("Telefone inválido"); return; }
+                await requestPhoneCode(form.phone);
+                toast.success("Código enviado");
+              } catch (err) {
+                toast.error("Não foi possível enviar o código");
+              }
+            }}>Enviar código</Button>
+          </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="signup-password">Senha</Label>

@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
-import { ThemeProvider } from "next-themes";
+import { useRef } from "react";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Signup from "./pages/Signup";
@@ -26,10 +26,12 @@ const queryClient = new QueryClient();
 
 const AnimatedRoutes = () => {
   const location = useLocation();
+  const nodeRef = useRef<HTMLDivElement | null>(null);
   return (
     <TransitionGroup>
-      <CSSTransition key={location.pathname} classNames="page-transition" timeout={300}>
-        <Routes location={location}>
+      <CSSTransition key={location.pathname} classNames="page-transition" timeout={300} nodeRef={nodeRef}>
+        <div ref={nodeRef}>
+          <Routes location={location}>
           <Route path="/" element={<Landing />} />
           <Route path="/admin" element={<AdminAuth />} />
           <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
@@ -46,7 +48,8 @@ const AnimatedRoutes = () => {
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
-        </Routes>
+          </Routes>
+        </div>
       </CSSTransition>
     </TransitionGroup>
   );
@@ -54,15 +57,13 @@ const AnimatedRoutes = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter basename={(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}>
-          <AnimatedRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter basename={(import.meta.env.BASE_URL || '/').replace(/\/\/$/, '')}>
+        <AnimatedRoutes />
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

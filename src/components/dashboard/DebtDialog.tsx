@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format, addMonths } from "date-fns";
+import { format, addMonths, isValid, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
@@ -30,12 +30,12 @@ const debtSchema = z.object({
   descricao: z.string().min(3, "Mínimo 3 caracteres"),
   tipo: z.enum(["divida", "financiamento"]),
   categoria: z.enum(["casa", "carro", "moto", "outro"]).optional(),
-  valor_total: z.number().min(0.01, "Valor deve ser maior que zero"),
-  valor_pago: z.number().min(0, "Valor não pode ser negativo"),
+  valor_total: z.number({ invalid_type_error: "Informe um valor" }).min(0.01, "Valor deve ser maior que zero"),
+  valor_pago: z.number({ invalid_type_error: "Informe um valor" }).min(0, "Valor não pode ser negativo").optional().default(0),
   data_inicio: z.date(),
   data_vencimento: z.date(),
-  parcelas_total: z.number().min(1, "Mínimo 1 parcela").optional(),
-  taxa_juros: z.number().min(0, "Taxa não pode ser negativa").optional(),
+  parcelas_total: z.number({ invalid_type_error: "Informe o número de parcelas" }).min(1, "Mínimo 1 parcela").optional(),
+  taxa_juros: z.number({ invalid_type_error: "Informe a taxa" }).min(0, "Taxa não pode ser negativa").optional(),
 });
 
 type DebtFormValues = z.infer<typeof debtSchema>;
@@ -68,10 +68,12 @@ export function DebtDialog({ open, onOpenChange, debt, onSuccess }: DebtDialogPr
   // Preencher formulário ao editar
   useEffect(() => {
     if (debt) {
+      const di = debt.data_inicio ? parseISO(String(debt.data_inicio)) : new Date();
+      const dv = debt.data_vencimento ? parseISO(String(debt.data_vencimento)) : addMonths(new Date(), 1);
       form.reset({
         ...debt,
-        data_inicio: new Date(debt.data_inicio),
-        data_vencimento: new Date(debt.data_vencimento),
+        data_inicio: isValid(di) ? di : new Date(),
+        data_vencimento: isValid(dv) ? dv : addMonths(new Date(), 1),
       });
     } else {
       form.reset({
@@ -97,7 +99,7 @@ export function DebtDialog({ open, onOpenChange, debt, onSuccess }: DebtDialogPr
         ...data,
         session_id: sessionIdNum.toString(),
         valor_total: Number(data.valor_total),
-        valor_pago: Number(data.valor_pago),
+        valor_pago: Number(data.valor_pago ?? 0),
         parcelas_total: tipo === "financiamento" ? Number(data.parcelas_total) : 1,
         taxa_juros: tipo === "financiamento" ? Number(data.taxa_juros) : 0,
         data_inicio: data.data_inicio.toISOString(),
@@ -111,7 +113,7 @@ export function DebtDialog({ open, onOpenChange, debt, onSuccess }: DebtDialogPr
           .update(payload)
           .eq("id", debt.id);
 
-        if (error) throw error;
+        if (error) throw new Error(error.message);
         toast.success("Dívida atualizada com sucesso!");
       } else {
         // Criar nova dívida
@@ -119,15 +121,15 @@ export function DebtDialog({ open, onOpenChange, debt, onSuccess }: DebtDialogPr
           .from("dividas_financiamentos")
           .insert([payload]);
 
-        if (error) throw error;
+        if (error) throw new Error(error.message);
         toast.success("Dívida adicionada com sucesso!");
       }
 
       onOpenChange(false);
       onSuccess?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar dívida:", error);
-      toast.error("Erro ao salvar dívida. Tente novamente.");
+      toast.error("Erro ao salvar dívida: " + (error?.message ?? "Tente novamente."));
     } finally {
       setIsLoading(false);
     }
@@ -280,7 +282,9 @@ export function DebtDialog({ open, onOpenChange, debt, onSuccess }: DebtDialogPr
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {form.watch("data_inicio") ? (
-                      format(form.watch("data_inicio"), "PPP", { locale: ptBR })
+                      (isValid(form.watch("data_inicio")) 
+                        ? format(form.watch("data_inicio"), "PPP", { locale: ptBR }) 
+                        : "Selecione uma data")
                     ) : (
                       <span>Selecione uma data</span>
                     )}
@@ -310,7 +314,9 @@ export function DebtDialog({ open, onOpenChange, debt, onSuccess }: DebtDialogPr
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {form.watch("data_vencimento") ? (
-                      format(form.watch("data_vencimento"), "PPP", { locale: ptBR })
+                      (isValid(form.watch("data_vencimento")) 
+                        ? format(form.watch("data_vencimento"), "PPP", { locale: ptBR }) 
+                        : "Selecione uma data")
                     ) : (
                       <span>Selecione uma data</span>
                     )}

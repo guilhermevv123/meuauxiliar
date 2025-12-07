@@ -35,4 +35,8 @@ try {
   console.warn('favicon/social image update skipped:', e);
 }
 
+try {
+  document.documentElement.classList.add('dark');
+} catch {}
+
 createRoot(document.getElementById("root")!).render(<App />);

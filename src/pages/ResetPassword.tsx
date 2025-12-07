@@ -8,14 +8,13 @@ import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import logoFull from "@/assets/logo-full.png";
 import { supabase } from "@/lib/supabaseClient";
-import { verifyCode } from "@/lib/verification";
-import { processVerificationRequest } from "@/lib/webhook";
+import { requestPhoneCode, verifyPhoneCode, normalizePhone, formatPhoneBR, phoneSearchKey } from "@/lib/phoneVerification";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState<"email" | "verification" | "new-password">("email");
-  const [email, setEmail] = useState("");
+  const [step, setStep] = useState<"phone" | "verification" | "new-password">("phone");
+  const [phone, setPhone] = useState("559");
   const [verificationCode, setVerificationCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,39 +24,25 @@ const ResetPassword = () => {
     setIsLoading(true);
     
     try {
-      // Verificar se o email existe na base de dados
+      const searchKey = phoneSearchKey(phone);
       const { data, error } = await supabase
         .from("clientes_meu_auxiliar")
-        .select("email")
-        .eq("email", email)
+        .select("session_id")
+        .eq("session_id", searchKey)
         .maybeSingle();
 
       if (error) {
-        toast.error("Erro ao verificar email: " + error.message);
+        toast.error("Erro ao verificar telefone: " + error.message);
         return;
       }
 
       if (!data) {
-        toast.error("Email não encontrado em nossa base de dados");
+        toast.error("Telefone não encontrado em nossa base de dados");
         return;
       }
 
-      // Processar solicitação via webhook
-      const response = await processVerificationRequest(email);
-      
-      if (!response.success) {
-        toast.error(response.message || "Erro ao gerar código de verificação");
-        return;
-      }
-      
-      // Em um sistema real, o código seria enviado por email através do webhook
-      // Aqui vamos apenas mostrar no console para fins de teste
-      console.log("Dados do webhook:", {
-        email: response.email,
-        code: response.code
-      });
-      
-      toast.success("Código de verificação enviado para seu email!");
+      await requestPhoneCode(phone);
+      toast.success("Código de verificação enviado para seu telefone!");
       setStep("verification");
     } catch (err) {
       console.error("Erro ao solicitar redefinição:", err);
@@ -72,8 +57,7 @@ const ResetPassword = () => {
     setIsLoading(true);
     
     try {
-      // Verificar o código
-      const isValid = await verifyCode(email, verificationCode);
+      const isValid = await verifyPhoneCode(phone, verificationCode);
       
       if (!isValid) {
         toast.error("Código de verificação inválido ou expirado");
@@ -105,11 +89,11 @@ const ResetPassword = () => {
         return;
       }
       
-      // Atualizar a senha no banco de dados
+      const phoneNorm = normalizePhone(phone);
       const { error } = await supabase
         .from("clientes_meu_auxiliar")
-        .update({ Senha: newPassword })
-        .eq("email", email);
+        .update({ Senha: newPassword, senha: newPassword })
+        .eq("session_id", phoneNorm);
 
       if (error) {
         toast.error("Erro ao atualizar senha: " + error.message);
@@ -117,7 +101,7 @@ const ResetPassword = () => {
       }
       
       toast.success("Senha redefinida com sucesso!");
-      navigate("/login");
+      navigate("/auth");
     } catch (err) {
       console.error("Erro ao redefinir senha:", err);
       toast.error("Erro ao redefinir senha. Tente novamente.");
@@ -130,21 +114,16 @@ const ResetPassword = () => {
     setIsLoading(true);
     
     try {
-      // Processar nova solicitação via webhook
-      const response = await processVerificationRequest(email);
-      
-      if (!response.success) {
-        toast.error(response.message || "Erro ao gerar novo código");
-        return;
-      }
-      
-      // Em um sistema real, o código seria enviado por email através do webhook
-      console.log("Dados do webhook para reenvio:", {
-        email: response.email,
-        code: response.code
-      });
-      
-      toast.success("Novo código enviado para seu email!");
+      // Verifica novamente a existência sem o 9 antes de reenviar
+      const searchKey = phoneSearchKey(phone);
+      const { data } = await supabase
+        .from("clientes_meu_auxiliar")
+        .select("session_id")
+        .eq("session_id", searchKey)
+        .maybeSingle();
+      if (!data) { toast.error("Telefone não encontrado em nossa base"); return; }
+      await requestPhoneCode(phone);
+      toast.success("Novo código enviado para seu telefone!");
     } catch (err) {
       console.error("Erro ao reenviar código:", err);
       toast.error("Erro ao reenviar código. Tente novamente.");
@@ -181,17 +160,26 @@ const ResetPassword = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {step === "email" && (
+          {step === "phone" && (
             <form onSubmit={handleRequestReset} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="reset-email">Email</Label>
+                <Label htmlFor="reset-phone">Telefone</Label>
                 <Input
-                  id="reset-email"
-                  type="email"
-                  placeholder="seu@email.com"
+                  id="reset-phone"
+                  type="tel"
+                  placeholder="55 DD 9 XXXXXXXX"
+                  inputMode="numeric"
+                  pattern="[0-9\s]*"
+                  maxLength={16}
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={formatPhoneBR(phone)}
+                  onChange={(e) => {
+                    let d = e.target.value.replace(/[^0-9]/g, "");
+                    if (!d.startsWith("55")) d = "55" + d;
+                    if (d.length >= 5 && d.charAt(4) === '9') d = d.slice(0,4) + d.slice(5);
+                    d = d.slice(0, 12);
+                    setPhone(d);
+                  }}
                 />
               </div>
               <Button 
@@ -199,7 +187,7 @@ const ResetPassword = () => {
                 className="w-full bg-gradient-purple shadow-glow hover:scale-105 transition-transform"
                 disabled={isLoading}
               >
-                {isLoading ? "Enviando..." : "Enviar código de verificação"}
+                {isLoading ? "Enviando..." : "Enviar código por telefone"}
               </Button>
             </form>
           )}
