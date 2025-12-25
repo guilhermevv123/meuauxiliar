@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, TrendingUp, PieChart, Filter, FileSpreadsheet, Shield, MessageSquare, Calendar, Zap, Star, Check } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -6,7 +7,15 @@ import screenshot1 from "@/assets/screenshot-1.png";
 import screenshot2 from "@/assets/screenshot-2.png";
 import Navbar from "@/components/Navbar";
 
+// Screenshots do sistema interno
+import dashboardScreenshot from "/screenshots/dashboard.png";
+import categoriasScreenshot from "/screenshots/categorias.png";
+import agendaScreenshot from "/screenshots/agenda.png";
+import dividasScreenshot from "/screenshots/dividas.png";
+
 const Landing = () => {
+  const [activeFeature, setActiveFeature] = useState(0);
+
   return (
     <div className="min-h-screen bg-gradient-dark">
       {/* Navbar */}
@@ -234,18 +243,103 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Screenshots Gallery */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="text-center mb-12">
+      {/* Interactive Features Showcase */}
+      <section className="container mx-auto px-4 py-24">
+        <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">Veja como é por dentro</h2>
-          <p className="text-xl text-muted-foreground">Alguns visuais do nosso dashboard em ação</p>
+          <p className="text-xl text-muted-foreground">Conheça as principais funcionalidades do sistema</p>
         </div>
-        <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-          <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-luxury hover:shadow-glow transition-all">
-            <img src={screenshot1} alt="Transações e visão do app" className="w-full h-auto" />
-          </div>
-          <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-luxury hover:shadow-glow transition-all">
-            <img src={screenshot2} alt="Agenda e recursos do app" className="w-full h-auto" />
+
+        <div className="max-w-6xl mx-auto rounded-3xl bg-card/30 border border-border/50 p-6 md:p-12">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left: Interactive Tabs */}
+            <div className="space-y-4">
+              {[
+                {
+                  id: 'dashboard',
+                  title: 'Dashboard Completo',
+                  description: 'Visão geral das suas finanças com saldo, entradas, saídas e gráficos detalhados.',
+                  icon: TrendingUp,
+                  image: dashboardScreenshot
+                },
+                {
+                  id: 'categorias',
+                  title: 'Categorias Organizadas',
+                  description: 'Organize suas despesas e receitas por categorias personalizadas para melhor controle.',
+                  icon: PieChart,
+                  image: categoriasScreenshot
+                },
+                {
+                  id: 'agenda',
+                  title: 'Agenda Inteligente',
+                  description: 'Calendário integrado com compromissos e lembretes financeiros automáticos.',
+                  icon: Calendar,
+                  image: agendaScreenshot
+                },
+                {
+                  id: 'dividas',
+                  title: 'Gestão de Dívidas',
+                  description: 'Acompanhe e gerencie suas dívidas com progresso visual de pagamentos.',
+                  icon: FileSpreadsheet,
+                  image: dividasScreenshot
+                }
+              ].map((feature, index) => {
+                const isActive = activeFeature === index;
+                return (
+                  <div
+                    key={feature.id}
+                    className={`cursor-pointer transition-all duration-300 rounded-2xl p-6 border ${
+                      isActive 
+                        ? 'bg-card border-primary/50 shadow-glow scale-[1.02]' 
+                        : 'bg-transparent border-transparent hover:bg-card/50'
+                    }`}
+                    onClick={() => setActiveFeature(index)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`p-3 rounded-xl transition-colors ${
+                        isActive ? 'bg-gradient-purple text-white' : 'bg-muted text-muted-foreground'
+                      }`}>
+                        <feature.icon className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className={`text-xl font-bold mb-2 transition-colors ${
+                          isActive ? 'text-primary' : 'text-foreground'
+                        }`}>
+                          {feature.title}
+                        </h3>
+                        <p className="text-muted-foreground leading-relaxed">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Right: Feature Preview */}
+            <div className="relative h-[400px] md:h-[600px] w-full rounded-2xl overflow-hidden shadow-2xl border border-border/50 bg-black/50">
+              {[
+                  dashboardScreenshot,
+                  categoriasScreenshot,
+                  agendaScreenshot,
+                  dividasScreenshot
+              ].map((img, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
+                    activeFeature === index ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                  }`}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10" />
+                  <img 
+                    src={img} 
+                    alt={`Feature preview ${index}`} 
+                    className="w-full h-full object-contain p-4 md:p-8"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
