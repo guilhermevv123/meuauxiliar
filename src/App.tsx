@@ -16,6 +16,8 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import AdminAuth from "./pages/admin/AdminAuth";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import { AdminAbandonedCart } from "./pages/admin/AdminAbandonedCart";
+import { AdminAutomations } from "./pages/admin/AdminAutomations";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import Crm from "./pages/admin/Crm";
 import Sales from "./pages/admin/Sales";
@@ -36,6 +38,8 @@ const AnimatedRoutes = () => {
           <Route path="/admin" element={<AdminAuth />} />
           <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
           <Route path="/admin/crm" element={<AdminProtectedRoute><Crm /></AdminProtectedRoute>} />
+          <Route path="/admin/abandoned" element={<AdminProtectedRoute><AdminAbandonedCart /></AdminProtectedRoute>} />
+          <Route path="/admin/automations" element={<AdminProtectedRoute><AdminAutomations /></AdminProtectedRoute>} />
           
           <Route path="/admin/vendas" element={<AdminProtectedRoute><Sales /></AdminProtectedRoute>} />
           <Route path="/admin/conversao" element={<AdminProtectedRoute><Conversion /></AdminProtectedRoute>} />

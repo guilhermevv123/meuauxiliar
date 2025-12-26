@@ -30,29 +30,15 @@ const AdminAuth = () => {
         .rpc("admin_login_hash", { p_email: email, p_senha: password })
         .maybeSingle();
 
-      if (error && (error.message || "").includes("Could not find the function")) {
-        const res = await supabase
-          .from("admin_usuarios")
-          .select("id, email, senha")
-          .eq("email", email)
-          .maybeSingle();
-        if (res.error) {
-          toast.error("Erro de login admin: " + res.error.message);
-          return;
+      if (error) {
+        if (error.message.includes("Could not find the function")) {
+            toast.error("Erro: Função de login seguro não encontrada. Execute o script de segurança no Supabase.");
+        } else {
+            toast.error("Erro de login: " + error.message);
         }
-        if (!res.data) {
-          toast.error("Admin não encontrado com este email");
-          return;
-        }
-        if (String(res.data.senha) !== password) {
-          toast.error("Senha incorreta");
-          return;
-        }
-        data = { id: res.data.id, email: res.data.email } as any;
-      } else if (error) {
-        toast.error("Erro de login admin: " + error.message);
         return;
       }
+      
       if (!data) {
         toast.error("Credenciais inválidas");
         return;
