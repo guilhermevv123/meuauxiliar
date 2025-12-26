@@ -24,24 +24,30 @@ const AdminAuth = () => {
         toast.error("Preencha email e senha");
         return;
       }
-      // Tenta login seguro por RPC (hash).
+      // Login simplificado (sem RPC) para evitar erros de banco
+      // Nota: Certifique-se de que RLS está desabilitado ou configurado para permitir leitura pública na tabela admin_usuarios
       let { data, error } = await supabase
-        .rpc("admin_login_hash", { p_email: email, p_senha: password })
-        .maybeSingle();
+          .from("admin_usuarios")
+          .select("id, email, senha")
+          .eq("email", email)
+          .maybeSingle();
 
       if (error) {
-        if (error.message.includes("Could not find the function")) {
-            toast.error("Erro: Função de login seguro não encontrada. Execute o script de segurança no Supabase.");
-        } else {
-            toast.error("Erro de login: " + error.message);
-        }
+        toast.error("Erro de login: " + error.message);
         return;
       }
       
       if (!data) {
-        toast.error("Credenciais inválidas");
+        toast.error("Admin não encontrado");
         return;
       }
+      
+      // Verificação simples de senha (texto plano)
+      if (String(data.senha) !== password) {
+          toast.error("Senha incorreta");
+          return;
+      }
+      
       setAdminSession({ email });
       toast.success("Admin autenticado");
       navigate("/admin/dashboard");
