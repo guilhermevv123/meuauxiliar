@@ -24,8 +24,7 @@ const AdminAuth = () => {
         toast.error("Preencha email e senha");
         return;
       }
-      // Buscar por email e validar senha no cliente (evita bloqueios por política ao filtrar senha)
-      // Tenta login seguro por RPC (hash). Se a função não existir, faz fallback para SELECT com senha plaintext.
+      // Tenta login seguro por RPC (hash).
       let { data, error } = await supabase
         .rpc("admin_login_hash", { p_email: email, p_senha: password })
         .maybeSingle();
