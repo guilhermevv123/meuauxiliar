@@ -48,13 +48,13 @@ export const QuizStep7 = () => {
     return () => clearInterval(interval);
   }, []);
   const plans = {
-    annual: {
-      url: "https://pay.kirvano.com/5c67223b-590f-4639-95fd-a71bbc9b5e59",
-      price: 238.80,
-      period: "ano",
-      label: "Anual",
-      perMonth: 19.90,
-      savings: "Economize R$ 90,90"
+    lifetime: {
+      url: "https://pay.kirvano.com/00f2290d-a222-48a9-ba73-7b5435603b0f",
+      price: 57.00,
+      oldPrice: 197.00,
+      period: "único",
+      label: "Vitalício",
+      savings: "Economize R$ 140,00"
     }
   };
 
@@ -74,10 +74,15 @@ export const QuizStep7 = () => {
         
         {/* Header Section */}
         <div className="text-center space-y-4">
-            <h2 className="text-primary font-bold tracking-widest text-xs uppercase">Oferta Por Tempo Limitado</h2>
-            <h1 className="text-2xl font-bold leading-tight">
-                Essa é a sua chance de cumprir o que você tem prometido a tanto tempo.
+            <div className="inline-block bg-primary/10 text-primary text-[10px] font-black px-4 py-1.5 rounded-full tracking-[0.2em] uppercase border border-primary/20">
+                Análise Verificada
+            </div>
+            <h1 className="text-3xl font-black leading-tight text-white">
+                Seu desconto de <span className="text-primary italic">71% OFF</span> foi aplicado com sucesso.
             </h1>
+            <p className="text-muted-foreground text-sm font-medium">
+                Você acaba de garantir o acesso vitalício pelo menor preço histórico.
+            </p>
         </div>
 
         {/* Growth Graph */}
@@ -227,7 +232,7 @@ export const QuizStep7 = () => {
         {/* Timer Button */}
         <Button className="w-full bg-primary hover:bg-primary/90 text-white rounded-full py-6 text-lg font-bold shadow-glow animate-pulse">
             <Clock className="w-5 h-5 mr-2" />
-            Oferta por tempo limitado: {timeLeft.minutes}:{String(timeLeft.seconds).padStart(2, '0')}
+            Oferta Válida para Sempre por: {timeLeft.minutes}:{String(timeLeft.seconds).padStart(2, '0')}
         </Button>
 
         {/* Testimonial */}
@@ -287,7 +292,7 @@ export const QuizStep7 = () => {
              <ul className="space-y-2">
                 <li className="flex items-center gap-2 text-xs text-muted-foreground">
                     <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                    <span>Acesso vitalício ao MeuAuxiliar</span>
+                    <span>Acesso VITALÍCIO (Para Sempre) ao MeuAuxiliar</span>
                 </li>
                  <li className="flex items-center gap-2 text-xs text-muted-foreground">
                     <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
@@ -313,7 +318,7 @@ export const QuizStep7 = () => {
                     
                     // Browser Pixel
                     // @ts-expect-error window.fbq is not typed
-                    if (window.fbq) window.fbq('track', 'AddToCart', { content_name: 'Plano Anual' }, { eventID: eventId });
+                    if (window.fbq) window.fbq('track', 'AddToCart', { content_name: 'Acesso Vitalício' }, { eventID: eventId });
                     
                     // CAPI
                     import('@/lib/meta-capi').then(({ sendCapiEvent }) => {
@@ -321,16 +326,18 @@ export const QuizStep7 = () => {
                             eventName: 'AddToCart',
                             eventId: eventId,
                             sourceUrl: window.location.href,
-                            customData: { content_name: 'Plano Anual' }
+                            customData: { content_name: 'Acesso Vitalício' }
                         });
                     });
+
+                    window.open(plans.lifetime.url, '_blank');
                 }}
                 className={cn(
                     "w-full rounded-xl p-0 relative cursor-pointer border-2 transition-all overflow-hidden border-primary shadow-luxury transform scale-[1.02]"
                 )}
             >
                 <div className="bg-primary text-primary-foreground text-xs font-bold text-right px-4 py-1">
-                    PROMOÇÃO 50% OFF
+                    OFERTA PARA SEMPRE - 71% OFF
                 </div>
                 <div className="p-6 bg-card flex justify-between items-center bg-gradient-dark">
                     <div>
@@ -338,19 +345,19 @@ export const QuizStep7 = () => {
                              <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center border-primary bg-primary">
                                 <CheckCircle2 className="w-3 h-3 text-white" />
                             </div>
-                            <span className="font-bold text-lg">Plano ANUAL</span>
+                            <span className="font-bold text-lg">Acesso VITALÍCIO</span>
                         </div>
                     </div>
                     <div className="text-right">
-                        <span className="text-[10px] text-muted-foreground line-through">12x de</span>
-                        <div className="text-3xl font-extrabold text-white">R$ 19,90</div>
-                         <span className="text-[10px] text-muted-foreground">ou R$ 238,80 à vista</span>
+                        <span className="text-[10px] text-muted-foreground line-through">De R$ 197,00</span>
+                        <div className="text-3xl font-extrabold text-white">R$ 57,00</div>
+                         <span className="text-[10px] text-muted-foreground">Pagamento Único</span>
                     </div>
                 </div>
             </div>
 
              <div className="bg-secondary/50 rounded-full py-1 px-3 text-[10px] text-center text-muted-foreground mx-auto w-fit">
-                (equivalente a menos de R$ 0,70 por dia)
+                (Acesso liberado para sempre, sem mensalidades)
             </div>
         </div>
 
@@ -425,9 +432,9 @@ export const QuizStep7 = () => {
             </p>
             <Button 
                 className="w-full py-6 text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl shadow-glow"
-                onClick={() => window.open(plans.annual.url, '_blank')}
+                onClick={() => window.open(plans.lifetime.url, '_blank')}
             >
-                Quero assinar
+                Quero meu acesso para sempre
             </Button>
         </div>
         

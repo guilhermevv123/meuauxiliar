@@ -30,6 +30,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AIChatWidget } from "./components/ai/AIChatWidget";
 import AiAssistantPage from "./pages/AiAssistantPage";
 import Quiz from "./pages/Quiz";
+import Quiz2 from "./pages/Quiz2";
 import RewardClaimed from "./pages/RewardClaimed";
 
 const queryClient = new QueryClient();
@@ -89,6 +90,7 @@ const AnimatedRoutes = () => {
       <Route path="/feedback/success" element={<FeedbackSuccess />} />
       <Route path="/plans" element={<Plans />} />
       <Route path="/quiz" element={<Quiz />} />
+      <Route path="/quiz2" element={<Quiz2 />} />
       <Route path="/reward-claimed" element={<RewardClaimed />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
