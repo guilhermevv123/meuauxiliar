@@ -15,16 +15,11 @@ export const QuizSalesV2 = ({ onNext }: QuizSalesV2Props) => {
     const text = encodeURIComponent("Olha que legal essa IA que organiza os gastos pelo WhatsApp! Acabei de garantir meu desconto aqui: " + window.location.href);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
     
-    // Simulate tracking shares
+    // Complete sharing immediately for better conversion
+    setShareCount(3);
     setTimeout(() => {
-        setShareCount(prev => {
-            const next = prev + 1;
-            if (next >= 3) {
-                onNext(); // Auto-proceed to the discounted final page
-            }
-            return next;
-        });
-    }, 1000);
+        onNext(); // Auto-proceed to the discounted final page
+    }, 500);
   };
 
   return (

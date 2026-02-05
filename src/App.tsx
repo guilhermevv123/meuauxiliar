@@ -32,6 +32,9 @@ import AiAssistantPage from "./pages/AiAssistantPage";
 import Quiz from "./pages/Quiz";
 import Quiz2 from "./pages/Quiz2";
 import RewardClaimed from "./pages/RewardClaimed";
+import Companies from "./pages/Companies";
+import { BusinessLayout } from "./layouts/BusinessLayout";
+import BusinessDashboard from "./pages/business/BusinessDashboard";
 
 const queryClient = new QueryClient();
 
@@ -84,7 +87,7 @@ const AnimatedRoutes = () => {
       <Route path="/terms" element={<Terms />} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/ai" element={<ProtectedRoute><AiAssistantPage /></ProtectedRoute>} />
       <Route path="/feedback" element={<Feedback />} />
       <Route path="/feedback/success" element={<FeedbackSuccess />} />
@@ -92,6 +95,14 @@ const AnimatedRoutes = () => {
       <Route path="/quiz" element={<Quiz />} />
       <Route path="/quiz2" element={<Quiz2 />} />
       <Route path="/reward-claimed" element={<RewardClaimed />} />
+      <Route path="/empresas" element={<Companies />} />
+      
+      {/* Business Dashboard Routes */}
+      <Route element={<BusinessLayout />}>
+        <Route path="/empresas/dashboard" element={<BusinessDashboard />} />
+        {/* Placeholder for other business routes if needed later */}
+      </Route>
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
