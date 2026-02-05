@@ -64,7 +64,21 @@ export const QuizSalesV2 = ({ onNext }: QuizSalesV2Props) => {
 
             <div className="space-y-4">
                 <Button 
-                    onClick={() => window.open('https://pay.kirvano.com/a05555c3-5d05-42dc-b947-1082076810bb', '_blank')}
+                    onClick={() => {
+                        const eventId = `checkout_${Date.now()}`;
+                        // Pixel
+                        if (window.fbq) window.fbq('track', 'AddToCart', { value: 197.00, currency: 'BRL', content_name: 'Plano Anual' }, { eventID: eventId });
+                        // CAPI
+                        import('@/lib/meta-capi').then(({ sendCapiEvent }) => {
+                            sendCapiEvent({
+                                eventName: 'AddToCart',
+                                eventId: eventId,
+                                sourceUrl: window.location.href,
+                                customData: { value: 197.00, currency: 'BRL', content_name: 'Plano Anual' }
+                            });
+                        });
+                        window.open('https://pay.kirvano.com/a05555c3-5d05-42dc-b947-1082076810bb', '_blank');
+                    }}
                     className="w-full py-8 text-xl font-black bg-slate-900 hover:bg-slate-800 text-white border border-slate-800 rounded-2xl transition-all shadow-lg"
                 >
                     Assinar Plano Anual (16,41/mês)
@@ -108,10 +122,10 @@ export const QuizSalesV2 = ({ onNext }: QuizSalesV2Props) => {
 
                         <Button 
                             onClick={handleShare}
-                            className="w-full py-8 text-lg font-black bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 transition-all active:scale-95 group/btn"
+                            className="w-full py-8 text-base md:text-lg font-black bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 transition-all active:scale-95 group/btn"
                         >
                             <Users className="w-6 h-6 group-hover/btn:scale-110 transition-transform" />
-                            LIBERAR MEU DESCONTO AGORA
+                            <span className="truncate">LIBERAR MEU DESCONTO AGORA</span>
                         </Button>
                     </div>
                 </div>

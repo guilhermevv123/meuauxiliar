@@ -87,7 +87,20 @@ export const QuizWelcome = ({ onStart }: QuizWelcomeProps) => {
         <Button 
           size="lg" 
           className="w-full text-lg font-bold py-7 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all active:scale-95"
-          onClick={onStart}
+          onClick={() => {
+            const eventId = `lead_${Date.now()}`;
+            // Pixel
+            if (window.fbq) window.fbq('track', 'Lead', {}, { eventID: eventId });
+            // CAPI
+            import('@/lib/meta-capi').then(({ sendCapiEvent }) => {
+              sendCapiEvent({
+                eventName: 'Lead',
+                eventId: eventId,
+                sourceUrl: window.location.href
+              });
+            });
+            onStart();
+          }}
         >
           Começar Agora
         </Button>

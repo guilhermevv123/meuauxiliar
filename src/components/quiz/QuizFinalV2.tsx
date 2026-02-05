@@ -32,7 +32,22 @@ export const QuizFinalV2 = () => {
                 <div className="flex flex-col gap-2 pt-4">
                     <Button 
                         size="lg"
-                        onClick={() => window.open('https://pay.kirvano.com/5c67223b-590f-4639-95fd-a71bbc9b5e59', '_blank')}
+                        onClick={() => {
+                            const eventId = `checkout_final_${Date.now()}`;
+                            // Pixel
+                            // @ts-expect-error - fbq is in index.html
+                            if (window.fbq) window.fbq('track', 'AddToCart', { value: 147.00, currency: 'BRL', content_name: 'Plano Anual Desconto' }, { eventID: eventId });
+                            // CAPI
+                            import('@/lib/meta-capi').then(({ sendCapiEvent }) => {
+                                sendCapiEvent({
+                                    eventName: 'AddToCart',
+                                    eventId: eventId,
+                                    sourceUrl: window.location.href,
+                                    customData: { value: 147.00, currency: 'BRL', content_name: 'Plano Anual Desconto' }
+                                });
+                            });
+                            window.open('https://pay.kirvano.com/5c67223b-590f-4639-95fd-a71bbc9b5e59', '_blank');
+                        }}
                         className="w-full py-8 text-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl shadow-lg"
                     >
                         Garantir Meu Plano Agora

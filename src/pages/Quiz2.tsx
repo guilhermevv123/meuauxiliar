@@ -25,6 +25,20 @@ const Quiz2 = () => {
       setTimeout(() => {
         setIsAnalyzing(false);
         setCurrentStep(7);
+        
+        // Tracking InitiateCheckout
+        const eventId = `checkout_init_${Date.now()}`;
+        // Pixel
+        // @ts-expect-error - fbq is in index.html
+        if (window.fbq) window.fbq('track', 'InitiateCheckout', {}, { eventID: eventId });
+        // CAPI
+        import('@/lib/meta-capi').then(({ sendCapiEvent }) => {
+          sendCapiEvent({
+            eventName: 'InitiateCheckout',
+            eventId: eventId,
+            sourceUrl: window.location.href
+          });
+        });
       }, 3000);
     } else if (currentStep === 7) {
       setCurrentStep(8);
