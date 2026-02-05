@@ -40,7 +40,20 @@ const Quiz2 = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden font-sans">
+    <div 
+      className="min-h-screen bg-slate-50 text-slate-900 flex flex-col relative overflow-hidden font-sans"
+      style={{
+        // @ts-expect-error - Custom CSS properties
+        "--background": "210 40% 98%",
+        "--foreground": "222 47% 11%",
+        "--primary": "142 71% 45%", // Emerald 500
+        "--primary-foreground": "0 0% 100%",
+        "--border": "214 32% 91%",
+        "--muted": "210 40% 96%",
+        "--muted-foreground": "215 16% 47%",
+        "--shadow-glow": "0 0 60px rgba(16, 185, 129, 0.2)"
+      } as React.CSSProperties}
+    >
       <header className="p-4 md:p-6 flex flex-col gap-4 max-w-7xl mx-auto w-full z-50 relative">
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -48,13 +61,13 @@ const Quiz2 = () => {
             </div>
             
             {currentStep > 1 && !isAnalyzing && (
-                <Button variant="ghost" size="icon" onClick={handleBack} className="hover:bg-transparent">
-                  <ArrowLeft className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
+                <Button variant="ghost" size="icon" onClick={handleBack} className="hover:bg-slate-100">
+                  <ArrowLeft className="w-5 h-5 text-slate-400 hover:text-slate-900 transition-colors" />
                 </Button>
             )}
         </div>
 
-        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+        <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
             <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
@@ -84,8 +97,8 @@ const Quiz2 = () => {
               
               <div className="space-y-6">
                 <div className="space-y-2">
-                    <h2 className="text-3xl font-black text-white">Configurando...</h2>
-                    <p className="text-muted-foreground text-sm font-medium">Preparando sua oferta exclusiva do Plano Anual...</p>
+                    <h2 className="text-3xl font-black text-slate-900">Configurando...</h2>
+                    <p className="text-slate-500 text-sm font-medium">Preparando sua oferta exclusiva do Plano Anual...</p>
                 </div>
 
                 <div className="space-y-3 text-left">
@@ -100,7 +113,7 @@ const Quiz2 = () => {
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.5 }}
-                        className="flex items-center gap-3 text-sm font-medium text-foreground/80"
+                        className="flex items-center gap-3 text-sm font-medium text-slate-600"
                       >
                          <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center">
                             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
@@ -153,7 +166,7 @@ const Quiz2 = () => {
         </AnimatePresence>
       </main>
       
-      <footer className="p-6 text-center text-xs text-muted-foreground">
+      <footer className="p-6 text-center text-xs text-slate-400">
         <p>&copy; {new Date().getFullYear()} MeuAuxiliar. Todos os direitos reservados.</p>
       </footer>
     </div>
