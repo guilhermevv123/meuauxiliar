@@ -8,12 +8,14 @@ import { QuizStep5 } from "@/components/quiz/QuizStep5";
 import { QuizStep6 } from "@/components/quiz/QuizStep6";
 import { QuizSales } from "@/components/quiz/QuizSales";
 import { QuizStep7 } from "@/components/quiz/QuizStep7";
+import { QuizFinalLight } from "@/components/quiz/QuizFinalLight";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 const Quiz = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
 
   const totalSteps = 2; // Welcome, Final
   const progressMap: Record<number, number> = {
@@ -38,7 +40,20 @@ const Quiz = () => {
     }
   };
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden font-sans">
+    <div 
+      className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden font-sans"
+      style={{
+        // @ts-expect-error - Custom CSS properties
+        "--background": "210 40% 98%",
+        "--foreground": "222 47% 11%",
+        "--primary": "142 71% 45%", // Emerald 500
+        "--primary-foreground": "0 0% 100%",
+        "--border": "214 32% 91%",
+        "--muted": "210 40% 96%",
+        "--muted-foreground": "215 16% 47%",
+        "--shadow-glow": "0 0 60px rgba(16, 185, 129, 0.2)"
+      } as React.CSSProperties}
+    >
       {/* Header with Progress Bar */}
       <header className="p-4 md:p-6 flex flex-col gap-4 max-w-7xl mx-auto w-full z-50 relative">
         <div className="flex items-center justify-between">
@@ -207,9 +222,11 @@ const Quiz = () => {
                   exit={{ opacity: 0, x: -20 }}
                   className="w-full"
                 >
-                  <QuizStep7 />
+                  <QuizFinalLight />
                 </motion.div>
               )}
+
+
             </>
           )}
         </AnimatePresence>
