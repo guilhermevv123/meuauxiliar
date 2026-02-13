@@ -31,6 +31,8 @@ import { AIChatWidget } from "./components/ai/AIChatWidget";
 import AiAssistantPage from "./pages/AiAssistantPage";
 import Quiz from "./pages/Quiz";
 import Quiz2 from "./pages/Quiz2";
+import Quiz3 from "./pages/Quiz3";
+import Quiz4 from "./pages/Quiz4";
 import RewardClaimed from "./pages/RewardClaimed";
 import Companies from "./pages/Companies";
 import { BusinessLayout } from "./layouts/BusinessLayout";
@@ -94,6 +96,8 @@ const AnimatedRoutes = () => {
       <Route path="/plans" element={<Plans />} />
       <Route path="/quiz" element={<Quiz />} />
       <Route path="/quiz2" element={<Quiz2 />} />
+      <Route path="/quiz3" element={<Quiz3 />} />
+      <Route path="/quiz4" element={<Quiz4 />} />
       <Route path="/reward-claimed" element={<RewardClaimed />} />
       <Route path="/empresas" element={<Companies />} />
       

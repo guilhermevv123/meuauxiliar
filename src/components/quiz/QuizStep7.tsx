@@ -310,17 +310,12 @@ export const QuizStep7 = () => {
         </div>
 
         {/* Pricing Selection */}
-        <div className="w-full space-y-4">
+        <div className="w-full space-y-6">
             {/* Annual */}
              <div 
                 onClick={() => {
                     const eventId = `addcart_${Date.now()}`;
-                    
-                    // Browser Pixel
-                    // @ts-expect-error window.fbq is not typed
                     if (window.fbq) window.fbq('track', 'AddToCart', { content_name: 'Acesso Vitalício' }, { eventID: eventId });
-                    
-                    // CAPI
                     import('@/lib/meta-capi').then(({ sendCapiEvent }) => {
                         sendCapiEvent({
                             eventName: 'AddToCart',
@@ -329,47 +324,52 @@ export const QuizStep7 = () => {
                             customData: { content_name: 'Acesso Vitalício' }
                         });
                     });
-
                     window.open(plans.lifetime.url, '_blank');
                 }}
-                className={cn(
-                    "w-full rounded-xl p-0 relative cursor-pointer border-2 transition-all overflow-hidden border-primary shadow-luxury transform scale-[1.02]"
-                )}
+                className="w-full rounded-2xl p-0 relative cursor-pointer overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-all"
             >
-                <div className="bg-primary text-primary-foreground text-xs font-bold text-right px-4 py-1">
-                    OFERTA PARA SEMPRE - 71% OFF
+                {/* Header */}
+                <div className="bg-[#8b5cf6] text-white text-xs font-black text-center py-3 tracking-wider uppercase">
+                    Oferta para sempre - 71% OFF
                 </div>
-                <div className="p-6 bg-card flex justify-between items-center bg-gradient-dark">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                             <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center border-primary bg-primary">
-                                <CheckCircle2 className="w-3 h-3 text-white" />
-                            </div>
-                            <span className="font-bold text-lg">Acesso VITALÍCIO</span>
-                        </div>
+                
+                {/* Body - Forced Dark */}
+                <div className="p-6 bg-[#09090b] text-white flex flex-col gap-4 relative">
+                    <div className="absolute top-4 right-6 text-xs text-gray-400 line-through">
+                        De R$ 197,00
                     </div>
-                    <div className="text-right">
-                        <span className="text-[10px] text-muted-foreground line-through">De R$ 197,00</span>
-                        <div className="text-3xl font-extrabold text-white">R$ 57,00</div>
-                         <span className="text-[10px] text-muted-foreground">Pagamento Único</span>
+
+                    <div className="flex items-center gap-3 mt-4">
+                        <div className="w-6 h-6 rounded-full bg-[#8b5cf6]/20 flex items-center justify-center border border-[#8b5cf6]">
+                            <Check className="w-3 h-3 text-[#8b5cf6]" />
+                        </div>
+                        <span className="font-bold text-gray-200">Acesso VITALÍCIO</span>
+                    </div>
+
+                    <div className="flex items-baseline gap-1 mt-[-4px] ml-9">
+                        <span className="text-4xl font-black text-white">R$ 57,00</span>
+                    </div>
+                    
+                    <div className="text-right mt-[-8px]">
+                        <span className="text-[10px] text-gray-400">Pagamento Único</span>
                     </div>
                 </div>
             </div>
 
-             <div className="bg-secondary/50 rounded-full py-1 px-3 text-[10px] text-center text-muted-foreground mx-auto w-fit">
+             <div className="bg-gray-100 rounded-full py-1.5 px-4 text-[10px] text-center text-gray-500 mx-auto w-fit border border-gray-200">
                 (Acesso liberado para sempre, sem mensalidades)
             </div>
         </div>
 
         {/* Guarantee Badge */}
-        <div className="flex flex-col items-center gap-2 p-6 bg-card border border-primary/20 rounded-xl text-center relative overflow-hidden group">
-            <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors" />
-            <div className="relative z-10 flex flex-col items-center">
-                <div className="bg-primary/10 p-3 rounded-full mb-2">
-                    <Shield className="w-8 h-8 text-primary" />
+        <div className="w-full bg-white border border-[#8b5cf6]/30 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+            <div className="absolute inset-0 bg-[#8b5cf6]/5 pointer-events-none" />
+            <div className="relative z-10 flex flex-col items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mb-1">
+                    <Shield className="w-6 h-6 text-[#8b5cf6]" />
                 </div>
-                <h3 className="font-bold text-foreground text-lg">30 Dias de Garantia</h3>
-                <p className="text-xs text-muted-foreground max-w-[250px]">
+                <h3 className="font-bold text-slate-900 text-lg">30 Dias de Garantia</h3>
+                <p className="text-xs text-slate-500 leading-relaxed max-w-[260px]">
                     Riscos zero. Se você não amar, nós devolvemos 100% do seu dinheiro. Sem perguntas.
                 </p>
             </div>
