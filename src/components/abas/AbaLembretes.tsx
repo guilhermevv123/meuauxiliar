@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { format, isPast, isToday, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Plus, Trash2, Loader2, BellRing, Repeat } from 'lucide-react'
+import { Plus, Trash2, Loader2, BellRing, Repeat, ImagePlus, X, Link2 } from 'lucide-react'
 import { toast } from 'sonner'
 import DiamondLoader from '@/components/DiamondLoader'
-import type { Lembrete } from '@/integrations/supabase/types'
-import { listarLembretes, salvarLembrete, alternarLembrete, apagarLembrete, msgErro } from '@/lib/dados'
+import type { Lembrete, Nota } from '@/integrations/supabase/types'
+import { listarLembretes, salvarLembrete, alternarLembrete, apagarLembrete, listarNotas, msgErro } from '@/lib/dados'
+import { subirFoto, urlDaFoto, apagarFoto } from '@/lib/fotos'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,23 +25,41 @@ const REPETICOES = [
   { valor: 'mensal', rotulo: 'Todo mês' },
 ] as const
 
+const SEM_NOTA = '__nenhuma__' // o Select não aceita value="" — sentinela p/ "sem nota"
+
 interface Rascunho {
   id?: string
   titulo: string
   data: string
   hora: string
   repetir: Lembrete['repetir']
+  foto_url: string | null
+  nota_id: string | null
+}
+
+/** Miniatura de foto — URL assinada cacheada. */
+function FotoMini({ caminho, className }: { caminho: string; className?: string }) {
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => { urlDaFoto(caminho).then(setUrl) }, [caminho])
+  if (!url) return <div className={`bg-slate-100 animate-pulse ${className}`} />
+  return <img src={url} alt="" className={className} loading="lazy" />
 }
 
 export default function AbaLembretes({ ativa }: { ativa: boolean }) {
   const [itens, setItens] = useState<Lembrete[]>([])
+  const [notas, setNotas] = useState<Nota[]>([])
   const [carregando, setCarregando] = useState(true)
   const [rascunho, setRascunho] = useState<Rascunho | null>(null)
   const [salvando, setSalvando] = useState(false)
+  const [subindoFoto, setSubindoFoto] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const carregar = useCallback(async () => {
     setCarregando(true)
-    try { setItens(await listarLembretes()) }
+    try {
+      const [ls, ns] = await Promise.all([listarLembretes(), listarNotas()])
+      setItens(ls); setNotas(ns)
+    }
     catch (e) { toast.error(msgErro(e)) }
     finally { setCarregando(false) }
   }, [])
@@ -65,7 +84,22 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
     setRascunho({
       titulo: '', data: format(agora, 'yyyy-MM-dd'),
       hora: format(agora, 'HH:mm'), repetir: 'nunca',
+      foto_url: null, nota_id: null,
     })
+  }
+
+  const escolherFoto = () => fileRef.current?.click()
+  const aoEscolherFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !rascunho) return
+    setSubindoFoto(true)
+    try {
+      const caminho = await subirFoto(file)
+      if (rascunho.foto_url) await apagarFoto(rascunho.foto_url)
+      setRascunho({ ...rascunho, foto_url: caminho })
+    } catch (err) { toast.error(msgErro(err)) }
+    finally { setSubindoFoto(false) }
   }
 
   const salvar = async () => {
@@ -77,6 +111,8 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
         titulo: rascunho.titulo.trim(),
         quando: new Date(`${rascunho.data}T${rascunho.hora}:00`).toISOString(),
         repetir: rascunho.repetir,
+        foto_url: rascunho.foto_url,
+        nota_id: rascunho.nota_id,
         // Editar um lembrete re-arma a notificação dele
         notificado_em: null,
         concluido: false,
@@ -122,13 +158,14 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
                 setRascunho({
                   id: l.id, titulo: l.titulo, data: format(q, 'yyyy-MM-dd'),
                   hora: format(q, 'HH:mm'), repetir: l.repetir,
+                  foto_url: l.foto_url, nota_id: l.nota_id,
                 })
               }}
             >
               <p className={`font-bold truncate ${l.concluido ? 'text-slate-400 line-through' : 'text-navy-900'}`}>
                 {l.titulo}
               </p>
-              <p className="text-xs text-slate-400 flex items-center gap-1.5">
+              <p className="text-xs text-slate-400 flex items-center gap-1.5 flex-wrap">
                 {format(parseISO(l.quando), "d MMM · HH:mm", { locale: ptBR })}
                 {l.repetir !== 'nunca' && (
                   <span className="flex items-center gap-0.5 text-primary/80">
@@ -136,8 +173,15 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
                     {REPETICOES.find((r) => r.valor === l.repetir)?.rotulo}
                   </span>
                 )}
+                {l.nota_id && (
+                  <span className="flex items-center gap-0.5 text-violet-500">
+                    <Link2 size={11} />
+                    {notas.find((n) => n.id === l.nota_id)?.titulo || 'nota'}
+                  </span>
+                )}
               </p>
             </button>
+            {l.foto_url && <FotoMini caminho={l.foto_url} className="w-10 h-10 rounded-lg object-cover shrink-0" />}
             <button
               onClick={() => apagar(l.id)}
               aria-label="Apagar lembrete"
@@ -231,6 +275,55 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Vincular a uma nota (opcional) */}
+              {notas.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5"><Link2 size={13} /> Vincular a uma nota</Label>
+                  <Select
+                    value={rascunho.nota_id ?? SEM_NOTA}
+                    onValueChange={(v) => setRascunho({ ...rascunho, nota_id: v === SEM_NOTA ? null : v })}
+                  >
+                    <SelectTrigger className="bg-slate-50 border-slate-200 rounded-xl">
+                      <SelectValue placeholder="Nenhuma" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-slate-200 text-navy-900">
+                      <SelectItem value={SEM_NOTA}>Nenhuma</SelectItem>
+                      {notas.map((n) => (
+                        <SelectItem key={n.id} value={n.id}>{n.titulo || 'Sem título'}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Foto (opcional) */}
+              {rascunho.foto_url ? (
+                <div className="relative rounded-xl overflow-hidden">
+                  <FotoMini caminho={rascunho.foto_url} className="w-full max-h-48 object-cover" />
+                  <button
+                    onClick={async () => {
+                      const antiga = rascunho.foto_url
+                      setRascunho({ ...rascunho, foto_url: null })
+                      if (antiga) await apagarFoto(antiga)
+                    }}
+                    aria-label="Remover foto"
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white grid place-items-center hover:bg-black/70"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={escolherFoto}
+                  disabled={subindoFoto}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-slate-300 text-sm font-bold text-slate-500 hover:border-primary hover:text-primary transition-colors"
+                >
+                  {subindoFoto ? <Loader2 className="animate-spin" size={16} /> : <ImagePlus size={16} />}
+                  {subindoFoto ? 'Enviando…' : 'Adicionar foto'}
+                </button>
+              )}
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={aoEscolherFoto} />
             </div>
           )}
           <DialogFooter className="flex-row gap-2 justify-end">

@@ -64,11 +64,15 @@ const FERRAMENTAS: Ferramenta[] = [
   },
   {
     name: 'criar_nota',
-    description: 'Guarda uma anotação.',
+    description: 'Guarda uma anotação. Use `topicos` (lista de bullets curtos) quando o usuário ditar itens/listas; `conteudo` para texto corrido.',
     parameters: {
       type: 'object',
-      properties: { titulo: { type: 'string' }, conteudo: { type: 'string' } },
-      required: ['conteudo'],
+      properties: {
+        titulo: { type: 'string' },
+        conteudo: { type: 'string' },
+        topicos: { type: 'array', items: { type: 'string' }, description: 'Itens/bullets da nota' },
+      },
+      required: ['titulo'],
     },
   },
   {
@@ -147,7 +151,8 @@ async function executarFerramenta(sb: any, userId: string, nome: string, args: a
       const { error } = await sb.from('notas').insert({
         user_id: userId,
         titulo: args.titulo ?? '',
-        conteudo: args.conteudo,
+        conteudo: args.conteudo ?? '',
+        topicos: Array.isArray(args.topicos) ? args.topicos : [],
       })
       if (error) throw error
       return { ok: true, mensagem: 'Nota guardada.' }
