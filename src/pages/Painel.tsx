@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { Home, CalendarDays, StickyNote, BellRing, Sparkles, LogOut, BellPlus, Check, WifiOff } from 'lucide-react'
+import { Home, CalendarDays, StickyNote, BellRing, Sparkles, LogOut, BellPlus, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { ativarNotificacoes, statusNotificacoes } from '@/lib/push'
-import { useOnline } from '@/lib/useOnline'
+import { cacheLimpar, iniciarSincronizacaoAutomatica } from '@/lib/offline'
+import FaixaOffline from '@/components/FaixaOffline'
 import AbaInicio from '@/components/abas/AbaInicio'
 import AbaAgenda from '@/components/abas/AbaAgenda'
 import AbaNotas from '@/components/abas/AbaNotas'
@@ -33,7 +34,6 @@ const ABAS: Array<{ id: Aba; rotulo: string; Icone: typeof CalendarDays }> = [
 export default function Painel({ sessao }: { sessao: Session }) {
   const [aba, setAba] = useState<Aba>('inicio')
   const [temPush, setTemPush] = useState<boolean | null>(null)
-  const online = useOnline()
 
   const nome =
     (sessao.user.user_metadata?.nome as string) ||
@@ -41,6 +41,9 @@ export default function Painel({ sessao }: { sessao: Session }) {
     'você'
 
   useEffect(() => { statusNotificacoes().then(setTemPush) }, [])
+
+  // Fila sobe ao abrir o app, ao voltar a internet e ao voltar pro app.
+  useEffect(() => { iniciarSincronizacaoAutomatica() }, [])
 
   const ligarPush = async () => {
     try {
@@ -52,7 +55,9 @@ export default function Painel({ sessao }: { sessao: Session }) {
     }
   }
 
-  const sair = () => supabase.auth.signOut()
+  // Cache local morre junto com a sessão: dado de uma conta não pode sobrar
+  // pra próxima pessoa que entrar neste aparelho.
+  const sair = async () => { cacheLimpar(); await supabase.auth.signOut() }
 
   const inicial = nome.charAt(0).toUpperCase()
 
@@ -133,12 +138,8 @@ export default function Painel({ sessao }: { sessao: Session }) {
           </div>
         </header>
 
-        {/* Faixa de "sem internet" — o app funciona offline, mas avisa. */}
-        {!online && (
-          <div className="flex items-center justify-center gap-2 py-1.5 px-4 bg-amber-100 text-amber-800 text-xs font-bold">
-            <WifiOff size={13} /> Sem internet — salvando no aparelho, sincroniza sozinho quando voltar.
-          </div>
-        )}
+        {/* Estado real da conexão E da fila (a faixa antiga só prometia). */}
+        <FaixaOffline />
 
         {/* Abas vivas: esconder com hidden preserva estado. */}
         <main className="flex-1 min-h-0 pb-24 lg:pb-0">

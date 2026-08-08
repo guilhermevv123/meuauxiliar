@@ -1,16 +1,72 @@
 /**
- * Service worker do Meu Auxiliar.
+ * Service worker do Diamond Lembretes.
  *
- * Faz DUAS coisas e mais nada:
+ * Faz TRÊS coisas:
  *  1. recebe push (lembrete vencido) e mostra a notificação;
- *  2. clique na notificação abre/foca o app.
+ *  2. clique na notificação abre/foca o app;
+ *  3. serve o app offline (app shell em cache).
  *
- * Sem cache de rede de propósito: SPA pequena atrás de CDN do GitHub Pages —
- * um cache mal invalidado aqui significaria usuário preso em versão velha,
- * que é exatamente a classe de bug mais difícil de suportar à distância.
+ * A estratégia de cache foi escolhida pra NÃO prender ninguém em versão velha
+ * — o medo legítimo que mantinha este SW sem cache até agora:
+ *  • **HTML/navegação: rede primeiro.** Com internet, sempre a versão nova.
+ *    O cache do index só entra em cena quando a rede falhou de verdade.
+ *  • **Assets com hash no nome (/assets/index-AbC123.js): cache primeiro.**
+ *    O nome muda a cada build, então cache velho nunca é servido pra código
+ *    novo — o index novo simplesmente pede outro arquivo.
+ *  • **API do Supabase: nunca cacheada.** Dado fresco é problema da camada
+ *    offline do app (lib/offline.ts), que sabe o que é fila e o que é cache.
  */
-self.addEventListener('install', () => self.skipWaiting())
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()))
+const CACHE = 'diamond-lembretes-v1'
+const ESSENCIAIS = ['/', '/index.html', '/manifest.webmanifest', '/icon-diamond.svg', '/favicon.png']
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(ESSENCIAIS)).catch(() => {}).then(() => self.skipWaiting())
+  )
+})
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys()
+      .then((nomes) => Promise.all(nomes.filter((n) => n !== CACHE).map((n) => caches.delete(n))))
+      .then(() => self.clients.claim())
+  )
+})
+
+self.addEventListener('fetch', (evento) => {
+  const req = evento.request
+  if (req.method !== 'GET') return
+  const url = new URL(req.url)
+  if (url.origin !== self.location.origin) return // Supabase/OpenAI passam direto
+
+  // Navegação: rede primeiro, cache como rede de segurança.
+  if (req.mode === 'navigate') {
+    evento.respondWith(
+      fetch(req)
+        .then((r) => {
+          const copia = r.clone()
+          caches.open(CACHE).then((c) => c.put('/index.html', copia)).catch(() => {})
+          return r
+        })
+        .catch(() => caches.match('/index.html').then((r) => r || Response.error()))
+    )
+    return
+  }
+
+  // Estáticos: cache primeiro (nome com hash torna isto seguro).
+  evento.respondWith(
+    caches.match(req).then((emCache) => {
+      if (emCache) return emCache
+      return fetch(req).then((r) => {
+        if (r.ok && (url.pathname.startsWith('/assets/') || ESSENCIAIS.includes(url.pathname))) {
+          const copia = r.clone()
+          caches.open(CACHE).then((c) => c.put(req, copia)).catch(() => {})
+        }
+        return r
+      })
+    })
+  )
+})
 
 self.addEventListener('push', (evento) => {
   let dados = { titulo: 'Meu Auxiliar', corpo: 'Você tem um lembrete.', url: '/' }
