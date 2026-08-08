@@ -112,6 +112,22 @@ const FERRAMENTAS: Ferramenta[] = [
   },
 ]
 
+/**
+ * ISO → "sábado, 09/08/2026 09:00" no fuso de São Paulo.
+ *
+ * Sem isto o modelo recebia `2026-08-09T12:00:00+00:00` e LIA como meio-dia —
+ * dizia a hora errada (a real era 09:00 em Brasília). Toda listagem manda a
+ * hora já formatada no fuso do usuário; o ISO segue junto só pra referência.
+ */
+function horaBR(iso: string | null): string | null {
+  if (!iso) return null
+  return new Date(iso).toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
 // deno-lint-ignore no-explicit-any
 async function executarFerramenta(sb: any, userId: string, nome: string, args: any) {
   switch (nome) {
@@ -137,7 +153,8 @@ async function executarFerramenta(sb: any, userId: string, nome: string, args: a
         .order('inicio')
         .limit(50)
       if (error) throw error
-      return { compromissos: data }
+      // deno-lint-ignore no-explicit-any
+      return { compromissos: (data ?? []).map((c: any) => ({ ...c, quando_br: horaBR(c.inicio) })) }
     }
     case 'apagar_compromisso': {
       const { error, count } = await sb
@@ -160,7 +177,7 @@ async function executarFerramenta(sb: any, userId: string, nome: string, args: a
     case 'listar_notas': {
       let q = sb
         .from('notas')
-        .select('id, titulo, conteudo, atualizado_em')
+        .select('id, titulo, conteudo, topicos, atualizado_em')
         .order('atualizado_em', { ascending: false })
         .limit(20)
       if (args.busca) q = q.or(`titulo.ilike.%${args.busca}%,conteudo.ilike.%${args.busca}%`)
@@ -185,7 +202,8 @@ async function executarFerramenta(sb: any, userId: string, nome: string, args: a
         .order('quando')
         .limit(50)
       if (error) throw error
-      return { lembretes: data }
+      // deno-lint-ignore no-explicit-any
+      return { lembretes: (data ?? []).map((l: any) => ({ ...l, quando_br: horaBR(l.quando) })) }
     }
     case 'concluir_lembrete': {
       const { error, count } = await sb
@@ -218,15 +236,28 @@ Deno.serve(async (req) => {
     }
     const userId = auth.user.id
 
-    const { mensagem } = await req.json()
+    const { mensagem, conversa_id } = await req.json()
     if (!mensagem || typeof mensagem !== 'string') {
       return Response.json({ erro: 'mensagem obrigatória' }, { status: 400, headers: CORS })
     }
 
-    // Contexto: nome do perfil + últimas mensagens (memória curta da conversa)
+    // Cada conversa é separada (estilo ChatGPT). Sem `conversa_id`, cria uma
+    // nova e devolve o id pro front continuar nela. O título nasce da primeira
+    // frase do usuário (cortada) — some do "Nova conversa" genérico.
+    let convId: string = conversa_id
+    if (!convId) {
+      const titulo = mensagem.trim().slice(0, 48) + (mensagem.length > 48 ? '…' : '')
+      const { data: nova, error } = await sb
+        .from('ai_conversas').insert({ user_id: userId, titulo }).select('id').single()
+      if (error) throw error
+      convId = nova.id
+    }
+
+    // Contexto: nome do perfil + histórico DESTA conversa (memória curta)
     const [{ data: perfil }, { data: historico }] = await Promise.all([
       sb.from('profiles').select('nome').eq('id', userId).maybeSingle(),
-      sb.from('ai_mensagens').select('papel, conteudo').order('id', { ascending: false }).limit(16),
+      sb.from('ai_mensagens').select('papel, conteudo')
+        .eq('conversa_id', convId).order('id', { ascending: false }).limit(16),
     ])
 
     const agora = new Date().toLocaleString('pt-BR', {
@@ -235,10 +266,11 @@ Deno.serve(async (req) => {
       timeStyle: 'short',
     })
 
-    const sistema = `Você é a assistente pessoal do app Meu Auxiliar (da Diamond). Fala português brasileiro, é direta, calorosa e resolve.
+    const sistema = `Você é a assistente pessoal do app Diamond Lembretes. Fala português brasileiro, é direta, calorosa e resolve.
 Usuário: ${perfil?.nome || 'usuário'}. Agora: ${agora} (fuso America/Sao_Paulo, use-o em TODA data que criar — sufixo -03:00).
 Você organiza TRÊS coisas: compromissos (agenda), notas e lembretes (viram notificação no celular). Use as ferramentas para criar/listar/concluir — nunca finja que criou.
 Regras de data: "amanhã", "sexta", "dia 15" → resolva para a data concreta a partir de hoje; sem hora dita, pergunte OU use um horário óbvio dito no contexto. Compromisso = evento com hora; lembrete = alerta pra não esquecer; nota = texto guardado.
+Ao FALAR horários de volta, use SEMPRE o campo \`quando_br\` que vem nas listagens (já está no fuso de Brasília). NUNCA leia a hora do campo ISO — ele está em UTC e você diria a hora errada.
 Se pedirem resumo/relatório ("como está minha semana?"), liste compromissos e lembretes do período e responda em texto corrido, curto.
 Respostas curtas (1 a 4 frases), sem markdown pesado; a resposta pode ser LIDA EM VOZ ALTA, então nada de listas com asteriscos — use frases naturais.`
 
@@ -300,13 +332,15 @@ Respostas curtas (1 a 4 frases), sem markdown pesado; a resposta pode ser LIDA E
     }
     if (!resposta) resposta = 'Feito! Algo mais?'
 
-    // Persiste o par — é a memória entre sessões (e entre celular/computador).
+    // Persiste o par NESTA conversa — memória entre sessões e aparelhos.
     await sb.from('ai_mensagens').insert([
-      { user_id: userId, papel: 'user', conteudo: mensagem },
-      { user_id: userId, papel: 'assistant', conteudo: resposta },
+      { user_id: userId, conversa_id: convId, papel: 'user', conteudo: mensagem },
+      { user_id: userId, conversa_id: convId, papel: 'assistant', conteudo: resposta },
     ])
+    // Sobe a conversa pro topo da lista (recentes primeiro).
+    await sb.from('ai_conversas').update({ atualizado_em: new Date().toISOString() }).eq('id', convId)
 
-    return Response.json({ resposta }, { headers: CORS })
+    return Response.json({ resposta, conversa_id: convId }, { headers: CORS })
   } catch (e) {
     console.error('[ai-chat]', e)
     return Response.json(
