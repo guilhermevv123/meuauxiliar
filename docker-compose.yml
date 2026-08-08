@@ -1,0 +1,13 @@
+# Subir o app com um comando: `docker compose up -d` → http://localhost:8080
+#
+# Não há variável de ambiente de segredo aqui porque não existe segredo no
+# front: a chave anon do Supabase é pública por design (protegida por RLS) e
+# tudo o que é sensível roda nas Edge Functions.
+services:
+  app:
+    build: .
+    image: diamond-lembretes:latest
+    container_name: diamond-lembretes
+    ports:
+      - "8080:80"
+    restart: unless-stopped

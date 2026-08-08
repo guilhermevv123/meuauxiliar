@@ -1,19 +1,22 @@
-# Meu Auxiliar
+# Diamond Lembretes
 
-Organizador pessoal com assistente de IA por voz, no visual do Diamond CRM.
+Organizador pessoal com assistente de IA por voz, no visual do Diamond.
 **No ar em [meuauxiliar.com](https://meuauxiliar.com)** — instala como app no
 celular (Compartilhar → Adicionar à Tela de Início).
 
 ## O que faz
 
+- **Início** — o dia num relance: hoje, amanhã, lembretes e o que já foi feito
 - **Agenda** — calendário mensal + compromissos com hora, local e cor
-- **Notas** — anotações com busca e fixar
-- **Lembretes** — com repetição (diário/semanal/mensal) e **notificação push**
-  na hora marcada, mesmo com o app fechado
+- **Notas** — título + **tópicos** (bullets), **foto**, busca e fixar
+- **Lembretes** — repetição (diário/semanal/mensal), **foto**, **vínculo com
+  uma nota** e **notificação push** na hora marcada, mesmo com o app fechado
 - **Assistente** — chat com IA que **cria e consulta** tudo isso por você.
-  Fale com ela: toque no microfone, peça "marca dentista sexta às 14h", e ela
-  marca — e responde **em voz alta** (voz "coral", a mesma do assistente de
-  mesa Diamond)
+  Fale: toque no microfone, peça "marca dentista sexta às 14h", e ela marca —
+  e responde **em voz alta** (voz "coral"). Tem **histórico de conversas** e
+  **modo ligação**: você fala, ela responde e volta a ouvir, sem tocar na tela.
+- **Funciona sem internet** — o que você criar fica salvo no aparelho e sobe
+  sozinho quando a conexão volta
 - **Login** individual — cada pessoa vê só o que é seu (RLS no banco)
 
 ## Arquitetura
@@ -55,6 +58,40 @@ supabase functions deploy push-lembretes --no-verify-jwt --project-ref zxaiearxs
 
 Migrations do banco em `supabase/migrations/`. Segredos das functions
 (`OPENAI_API_KEY`, `VAPID_KEYS_JWK`, `CRON_SECRET`): `supabase secrets set`.
+
+## Docker
+
+O front é estático, então a imagem é um nginx com o `dist` dentro — sem Node
+no runtime (~50 MB).
+
+```bash
+docker compose up -d --build     # http://localhost:8080
+```
+
+Ou sem compose:
+
+```bash
+docker build -t diamond-lembretes .
+```
+
+```bash
+docker run -d -p 8080:80 --name diamond-lembretes diamond-lembretes
+```
+
+**Não existe variável de segredo aqui** — e não deve passar a existir. A chave
+`anon` do Supabase é pública por desenho e tudo que é sensível (OpenAI,
+`service_role`) vive nas Edge Functions. Um `ARG`/`ENV` de chave neste
+Dockerfile seria uma regressão de segurança, porque o valor fica gravado nas
+camadas da imagem.
+
+O cache do nginx (`docker/nginx.conf`) espelha o do service worker de
+propósito: `index.html` e `sw.js` nunca cacheados, `/assets/*` cacheado por um
+ano (o nome tem hash). Se os dois discordarem, o usuário fica preso numa
+versão antiga.
+
+O workflow `.github/workflows/docker.yml` não só compila a imagem: ele sobe o
+container e verifica com requests reais que o app é servido, que rota interna
+do SPA devolve 200 e que os cabeçalhos de cache estão certos.
 
 ## Notificações no iPhone
 

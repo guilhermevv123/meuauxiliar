@@ -1,0 +1,62 @@
+# Prova que a imagem Docker compila E serve o app — não só que o Dockerfile
+# tem sintaxe válida. Um "docker build" verde que devolve 404 no navegador não
+# vale nada, então o job sobe o container e faz requests de verdade.
+name: Docker
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "Dockerfile"
+      - "docker/**"
+      - "docker-compose.yml"
+      - "src/**"
+      - "public/**"
+      - "package*.json"
+      - ".github/workflows/docker.yml"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build da imagem
+        run: docker build -t diamond-lembretes:ci .
+
+      - name: Subir o container
+        run: |
+          docker run -d --name app -p 8080:80 diamond-lembretes:ci
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8080/ >/dev/null && break
+            sleep 1
+          done
+
+      - name: Smoke test — o app é servido mesmo
+        run: |
+          set -e
+          echo "→ index responde e é o app certo"
+          curl -fsS http://localhost:8080/ | grep -q "Diamond Lembretes"
+
+          echo "→ rota interna do SPA cai no index (não 404)"
+          curl -fsS -o /dev/null -w '%{http_code}\n' http://localhost:8080/qualquer/rota | grep -q 200
+
+          echo "→ service worker é servido e NÃO é cacheado"
+          curl -fsS -D- -o /dev/null http://localhost:8080/sw.js | grep -qi "no-store"
+
+          echo "→ asset com hash vem com cache longo"
+          ASSET=$(curl -fsS http://localhost:8080/ | grep -o '/assets/index-[A-Za-z0-9_-]*\.js' | head -1)
+          test -n "$ASSET"
+          curl -fsS -D- -o /dev/null "http://localhost:8080$ASSET" | grep -qi "immutable"
+
+          echo "OK: imagem serve o app, roteamento SPA e cache corretos."
+
+      - name: Logs do nginx se algo falhar
+        if: failure()
+        run: docker logs app
+
+      - name: Limpar
+        if: always()
+        run: docker rm -f app || true

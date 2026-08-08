@@ -1,0 +1,16 @@
+# Fora do contexto de build: o que não sobe deixa a imagem menor e o build
+# mais rápido — e garante que credencial local nenhuma entre na imagem.
+node_modules
+dist
+dist-ssr
+.git
+.github
+.env
+.env.*
+*.local
+*.log
+.DS_Store
+.vscode
+.idea
+supabase/.temp
+coverage
