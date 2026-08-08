@@ -15,6 +15,9 @@ export interface Compromisso {
   cor: string
   criado_em: string
   atualizado_em: string
+  etiqueta_ids: string[]
+  avisos: number[]
+  avisos_enviados: number[]
 }
 
 export interface Nota {
@@ -26,6 +29,7 @@ export interface Nota {
   foto_url: string | null
   fixada: boolean
   cor: string
+  etiqueta_ids: string[]
   criado_em: string
   atualizado_em: string
 }
@@ -40,6 +44,19 @@ export interface Lembrete {
   notificado_em: string | null
   foto_url: string | null
   nota_id: string | null
+  etiqueta_ids: string[]
+  /** Minutos ANTES de `quando` em que avisar. 0 = na hora, 1440 = 1 dia. */
+  avisos: number[]
+  avisos_enviados: number[]
+  criado_em: string
+}
+
+/** Etiqueta colorida, compartilhada por notas, lembretes e compromissos. */
+export interface Etiqueta {
+  id: string
+  user_id: string
+  nome: string
+  cor: string
   criado_em: string
 }
 

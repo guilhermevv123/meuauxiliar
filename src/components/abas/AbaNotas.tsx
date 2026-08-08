@@ -9,6 +9,8 @@ import type { Nota } from '@/integrations/supabase/types'
 import { listarNotas, salvarNota, apagarNota, msgErro } from '@/lib/dados'
 import { subirFoto, urlDaFoto, apagarFoto } from '@/lib/fotos'
 import DiamondLoader from '@/components/DiamondLoader'
+import SeletorEtiquetas, { EtiquetasDoItem, useEtiquetas } from '@/components/SeletorEtiquetas'
+import { corDe } from '@/lib/etiquetas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -21,6 +23,7 @@ interface Rascunho {
   topicos: string[]
   foto_url: string | null
   fixada: boolean
+  etiqueta_ids: string[]
 }
 
 /** Miniatura de foto de nota — resolve a URL assinada e cacheia. */
@@ -39,6 +42,7 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
   const [salvando, setSalvando] = useState(false)
   const [subindoFoto, setSubindoFoto] = useState(false)
   const [novoTopico, setNovoTopico] = useState('')
+  const { etiquetas, recarregar: recarregarEtiquetas } = useEtiquetas(ativa)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const carregar = useCallback(async () => {
@@ -50,23 +54,38 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
 
   useEffect(() => { if (ativa) void carregar() }, [ativa, carregar])
 
-  const filtradas = busca.trim()
-    ? notas.filter((n) =>
-        (n.titulo + ' ' + n.conteudo + ' ' + (n.topicos || []).join(' '))
-          .toLowerCase().includes(busca.trim().toLowerCase()))
-    : notas
+  const [filtroEtiqueta, setFiltroEtiqueta] = useState<string | null>(null)
+
+  const filtradas = notas
+    .filter((n) => !filtroEtiqueta || (n.etiqueta_ids ?? []).includes(filtroEtiqueta))
+    .filter((n) => {
+      const t = busca.trim().toLowerCase()
+      if (!t) return true
+      const etq = (n.etiqueta_ids ?? [])
+        .map((id) => etiquetas.find((e) => e.id === id)?.nome ?? '').join(' ')
+      return (n.titulo + ' ' + n.conteudo + ' ' + (n.topicos || []).join(' ') + ' ' + etq)
+        .toLowerCase().includes(t)
+    })
+
+  // Fixar só reordenava — com poucas notas, clicar no alfinete não mudava
+  // nada visível e parecia quebrado. Separar em duas seções dá o efeito que
+  // a pessoa espera de "fixar".
+  const fixadas = filtradas.filter((n) => n.fixada)
+  const outras = filtradas.filter((n) => !n.fixada)
 
   const abrirNovo = () =>
-    setRascunho({ titulo: '', conteudo: '', topicos: [], foto_url: null, fixada: false })
+    setRascunho({ titulo: '', conteudo: '', topicos: [], foto_url: null, fixada: false, etiqueta_ids: [] })
 
   const abrirEdicao = (n: Nota) =>
     setRascunho({
       id: n.id, titulo: n.titulo, conteudo: n.conteudo,
       topicos: n.topicos || [], foto_url: n.foto_url, fixada: n.fixada,
+      etiqueta_ids: n.etiqueta_ids || [],
     })
 
   const vazia = (r: Rascunho) =>
-    !r.titulo.trim() && !r.conteudo.trim() && r.topicos.length === 0 && !r.foto_url
+    !r.titulo.trim() && !r.conteudo.trim() && r.topicos.length === 0 && !r.foto_url &&
+    r.etiqueta_ids.length === 0
 
   const salvar = async () => {
     if (!rascunho) return
@@ -80,6 +99,7 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
         topicos: rascunho.topicos,
         foto_url: rascunho.foto_url,
         fixada: rascunho.fixada,
+        etiqueta_ids: rascunho.etiqueta_ids,
       })
       setRascunho(null)
       void carregar()
@@ -124,6 +144,58 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
     setNovoTopico('')
   }
 
+  /** Grade de cards — mesma marcação para "Fixadas" e "Outras". */
+  const Grade = ({ notas: lista }: { notas: Nota[] }) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {lista.map((n, i) => (
+        <div
+          key={n.id}
+          role="button" tabIndex={0}
+          onClick={() => abrirEdicao(n)}
+          onKeyDown={(e) => e.key === 'Enter' && abrirEdicao(n)}
+          style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+          className="group card-base card-hover overflow-hidden cursor-pointer animate-rise"
+        >
+          {n.foto_url && <FotoNota caminho={n.foto_url} className="w-full h-32 object-cover" />}
+          <div className="p-4">
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-bold text-navy-900 truncate">{n.titulo || 'Sem título'}</p>
+              <button
+                onClick={(e) => { e.stopPropagation(); void alternarFixada(n) }}
+                aria-label={n.fixada ? 'Desafixar' : 'Fixar'}
+                className={`p-1 rounded-lg shrink-0 ${
+                  n.fixada ? 'text-primary' : 'text-slate-400 opacity-0 group-hover:opacity-100 hover:text-primary'
+                } transition-opacity`}
+              >
+                {n.fixada ? <Pin size={15} /> : <PinOff size={15} />}
+              </button>
+            </div>
+            <div className="mt-1.5"><EtiquetasDoItem ids={n.etiqueta_ids} todas={etiquetas} max={3} /></div>
+            {n.conteudo && (
+              <p className="text-sm text-slate-500 mt-1.5 line-clamp-3 whitespace-pre-wrap">{n.conteudo}</p>
+            )}
+            {n.topicos?.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {n.topicos.slice(0, 4).map((t, j) => (
+                  <li key={j} className="text-sm text-slate-600 flex items-start gap-1.5">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                    <span className="truncate">{t}</span>
+                  </li>
+                ))}
+                {n.topicos.length > 4 && (
+                  <li className="text-xs text-slate-400 pl-3">+{n.topicos.length - 4} tópicos</li>
+                )}
+              </ul>
+            )}
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-2.5">
+              {format(parseISO(n.atualizado_em), "d MMM · HH:mm", { locale: ptBR })}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
       <div className="flex items-center gap-2">
@@ -140,6 +212,38 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
         </Button>
       </div>
 
+      {/* Filtro por etiqueta — rola na horizontal no celular em vez de quebrar */}
+      {etiquetas.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+          <button
+            onClick={() => setFiltroEtiqueta(null)}
+            className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold transition-colors ${
+              !filtroEtiqueta
+                ? 'bg-navy-900 text-white border-navy-900'
+                : 'border-slate-200 text-slate-500 hover:border-primary hover:text-primary'
+            }`}
+          >
+            Todas
+          </button>
+          {etiquetas.map((et) => {
+            const ativo = filtroEtiqueta === et.id
+            const cor = corDe(et.cor)
+            return (
+              <button
+                key={et.id}
+                onClick={() => setFiltroEtiqueta(ativo ? null : et.id)}
+                className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold transition-all ${
+                  ativo ? `${cor.chip} ring-2 ring-offset-1 ring-slate-300` : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${cor.bolinha}`} />
+                {et.nome}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {carregando ? (
         <div className="py-14"><DiamondLoader size={72} label="Carregando" /></div>
       ) : filtradas.length === 0 ? (
@@ -151,52 +255,23 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
           {!busca && <p className="text-xs text-slate-400 mt-1">Anote qualquer coisa — ou dite pra assistente.</p>}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {filtradas.map((n, i) => (
-            <div
-              key={n.id}
-              role="button" tabIndex={0}
-              onClick={() => abrirEdicao(n)}
-              onKeyDown={(e) => e.key === 'Enter' && abrirEdicao(n)}
-              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-              className="group card-base card-hover overflow-hidden cursor-pointer animate-rise"
-            >
-              {n.foto_url && <FotoNota caminho={n.foto_url} className="w-full h-32 object-cover" />}
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-bold text-navy-900 truncate">{n.titulo || 'Sem título'}</p>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); void alternarFixada(n) }}
-                    aria-label={n.fixada ? 'Desafixar' : 'Fixar'}
-                    className={`p-1 rounded-lg shrink-0 ${
-                      n.fixada ? 'text-primary' : 'text-slate-400 opacity-0 group-hover:opacity-100 hover:text-primary'
-                    } transition-opacity`}
-                  >
-                    {n.fixada ? <Pin size={15} /> : <PinOff size={15} />}
-                  </button>
-                </div>
-                {n.conteudo && (
-                  <p className="text-sm text-slate-500 mt-1 line-clamp-3 whitespace-pre-wrap">{n.conteudo}</p>
-                )}
-                {n.topicos?.length > 0 && (
-                  <ul className="mt-2 space-y-1">
-                    {n.topicos.slice(0, 4).map((t, j) => (
-                      <li key={j} className="text-sm text-slate-600 flex items-start gap-1.5">
-                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                        <span className="truncate">{t}</span>
-                      </li>
-                    ))}
-                    {n.topicos.length > 4 && (
-                      <li className="text-xs text-slate-400 pl-3">+{n.topicos.length - 4} tópicos</li>
-                    )}
-                  </ul>
-                )}
-                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-2.5">
-                  {format(parseISO(n.atualizado_em), "d MMM · HH:mm", { locale: ptBR })}
-                </p>
-              </div>
-            </div>
-          ))}
+        <div className="space-y-5">
+          {fixadas.length > 0 && (
+            <section className="space-y-2">
+              <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                <Pin size={11} /> Fixadas
+              </p>
+              <Grade notas={fixadas} />
+            </section>
+          )}
+          {outras.length > 0 && (
+            <section className="space-y-2">
+              {fixadas.length > 0 && (
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Outras</p>
+              )}
+              <Grade notas={outras} />
+            </section>
+          )}
         </div>
       )}
 
@@ -231,6 +306,13 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
                 onChange={(e) => setRascunho({ ...rascunho, titulo: e.target.value })}
                 placeholder="Título"
                 className="bg-transparent border-0 border-b border-slate-200 rounded-none text-lg font-black px-0 pb-2 focus-visible:ring-0 focus-visible:border-primary placeholder:text-slate-400"
+              />
+
+              <SeletorEtiquetas
+                selecionadas={rascunho.etiqueta_ids}
+                onMudar={(ids) => setRascunho({ ...rascunho, etiqueta_ids: ids })}
+                etiquetas={etiquetas}
+                onRecarregar={recarregarEtiquetas}
               />
 
               {/* Tópicos — o formato estruturado (bullets) */}

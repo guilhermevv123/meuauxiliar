@@ -4,9 +4,10 @@ import {
   isToday, startOfMonth, startOfWeek, eachDayOfInterval, parseISO,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, MapPin, Trash2, Loader2, CalendarDays } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, MapPin, Trash2, Loader2, CalendarDays, BellRing } from 'lucide-react'
 import { toast } from 'sonner'
 import DiamondLoader from '@/components/DiamondLoader'
+import SeletorEtiquetas, { EtiquetasDoItem, useEtiquetas } from '@/components/SeletorEtiquetas'
 import type { Compromisso } from '@/integrations/supabase/types'
 import { listarCompromissos, salvarCompromisso, apagarCompromisso, msgErro } from '@/lib/dados'
 import { Button } from '@/components/ui/button'
@@ -34,11 +35,28 @@ interface Rascunho {
   local: string
   descricao: string
   cor: string
+  etiqueta_ids: string[]
+  avisos: number[]
 }
+
+/**
+ * Avisos antecipados do compromisso, em minutos antes.
+ * A agenda era MUDA: marcava dentista sexta 14h e nada notificava. O padrão
+ * agora é 1h antes — o aviso que serve pra você ainda conseguir sair de casa.
+ */
+const AVISOS = [
+  { min: 0,    rotulo: 'Na hora' },
+  { min: 15,   rotulo: '15 min antes' },
+  { min: 30,   rotulo: '30 min antes' },
+  { min: 60,   rotulo: '1 hora antes' },
+  { min: 180,  rotulo: '3 horas antes' },
+  { min: 1440, rotulo: '1 dia antes' },
+] as const
 
 const rascunhoVazio = (dia: Date): Rascunho => ({
   titulo: '', data: format(dia, 'yyyy-MM-dd'), hora: '09:00', horaFim: '',
   dia_inteiro: false, local: '', descricao: '', cor: 'sky',
+  etiqueta_ids: [], avisos: [60],
 })
 
 export default function AbaAgenda({ ativa }: { ativa: boolean }) {
@@ -48,6 +66,7 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
   const [carregando, setCarregando] = useState(true)
   const [rascunho, setRascunho] = useState<Rascunho | null>(null)
   const [salvando, setSalvando] = useState(false)
+  const { etiquetas, recarregar: recarregarEtiquetas } = useEtiquetas(ativa)
 
   // A grade mostra semanas completas, então a busca cobre a grade inteira —
   // senão os dias "vazados" do mês vizinho apareceriam sem bolinha.
@@ -88,6 +107,7 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
       horaFim: c.fim ? format(parseISO(c.fim), 'HH:mm') : '',
       dia_inteiro: c.dia_inteiro, local: c.local ?? '',
       descricao: c.descricao ?? '', cor: c.cor,
+      etiqueta_ids: c.etiqueta_ids ?? [], avisos: c.avisos?.length ? c.avisos : [60],
     })
   }
 
@@ -109,6 +129,10 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
         local: rascunho.local.trim() || null,
         descricao: rascunho.descricao.trim() || null,
         cor: rascunho.cor,
+        etiqueta_ids: rascunho.etiqueta_ids,
+        avisos: rascunho.avisos,
+        // Mexeu na data/hora: os avisos já disparados voltam a valer.
+        avisos_enviados: [],
       })
       toast.success(rascunho.id ? 'Compromisso atualizado.' : 'Compromisso criado.')
       setRascunho(null)
@@ -329,6 +353,50 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
                     }`}
                   />
                 ))}
+              </div>
+
+              {/* Avisos — a agenda passou a notificar */}
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5"><BellRing size={13} /> Me avise</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {AVISOS.map((a) => {
+                    const marcado = rascunho.avisos.includes(a.min)
+                    return (
+                      <button
+                        key={a.min}
+                        type="button"
+                        onClick={() => setRascunho({
+                          ...rascunho,
+                          avisos: marcado
+                            ? rascunho.avisos.filter((m) => m !== a.min)
+                            : [...rascunho.avisos, a.min].sort((x, y) => y - x),
+                        })}
+                        className={`rounded-full border px-2.5 py-1 text-xs font-bold transition-colors ${
+                          marcado
+                            ? 'bg-primary/10 border-primary text-primary'
+                            : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                        }`}
+                      >
+                        {a.rotulo}
+                      </button>
+                    )
+                  })}
+                </div>
+                {rascunho.avisos.length === 0 && (
+                  <p className="text-[11px] text-amber-600 font-semibold">
+                    Nenhum aviso marcado — este compromisso não vai te notificar.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Etiquetas</Label>
+                <SeletorEtiquetas
+                  selecionadas={rascunho.etiqueta_ids}
+                  onMudar={(ids) => setRascunho({ ...rascunho, etiqueta_ids: ids })}
+                  etiquetas={etiquetas}
+                  onRecarregar={recarregarEtiquetas}
+                />
               </div>
             </div>
           )}

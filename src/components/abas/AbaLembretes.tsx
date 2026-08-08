@@ -4,6 +4,7 @@ import { ptBR } from 'date-fns/locale'
 import { Plus, Trash2, Loader2, BellRing, Repeat, ImagePlus, X, Link2 } from 'lucide-react'
 import { toast } from 'sonner'
 import DiamondLoader from '@/components/DiamondLoader'
+import SeletorEtiquetas, { EtiquetasDoItem, useEtiquetas } from '@/components/SeletorEtiquetas'
 import type { Lembrete, Nota } from '@/integrations/supabase/types'
 import { listarLembretes, salvarLembrete, alternarLembrete, apagarLembrete, listarNotas, msgErro } from '@/lib/dados'
 import { subirFoto, urlDaFoto, apagarFoto } from '@/lib/fotos'
@@ -27,6 +28,22 @@ const REPETICOES = [
 
 const SEM_NOTA = '__nenhuma__' // o Select não aceita value="" — sentinela p/ "sem nota"
 
+/**
+ * Avisos antecipados, em minutos antes do horário.
+ *
+ * Vários por lembrete de propósito: o pedido era ser avisado quando chega o
+ * dia E quando está perto de vencer — são disparos diferentes do mesmo item.
+ */
+const AVISOS = [
+  { min: 0,    rotulo: 'Na hora' },
+  { min: 10,   rotulo: '10 min antes' },
+  { min: 30,   rotulo: '30 min antes' },
+  { min: 60,   rotulo: '1 hora antes' },
+  { min: 180,  rotulo: '3 horas antes' },
+  { min: 1440, rotulo: '1 dia antes' },
+  { min: 2880, rotulo: '2 dias antes' },
+] as const
+
 interface Rascunho {
   id?: string
   titulo: string
@@ -35,6 +52,13 @@ interface Rascunho {
   repetir: Lembrete['repetir']
   foto_url: string | null
   nota_id: string | null
+  etiqueta_ids: string[]
+  avisos: number[]
+}
+
+/** "1440" → "1 dia antes", pro selo do card. */
+function rotuloAviso(min: number): string {
+  return AVISOS.find((a) => a.min === min)?.rotulo ?? `${min} min antes`
 }
 
 /** Miniatura de foto — URL assinada cacheada. */
@@ -52,6 +76,7 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
   const [rascunho, setRascunho] = useState<Rascunho | null>(null)
   const [salvando, setSalvando] = useState(false)
   const [subindoFoto, setSubindoFoto] = useState(false)
+  const { etiquetas, recarregar: recarregarEtiquetas } = useEtiquetas(ativa)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const carregar = useCallback(async () => {
@@ -84,7 +109,7 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
     setRascunho({
       titulo: '', data: format(agora, 'yyyy-MM-dd'),
       hora: format(agora, 'HH:mm'), repetir: 'nunca',
-      foto_url: null, nota_id: null,
+      foto_url: null, nota_id: null, etiqueta_ids: [], avisos: [0],
     })
   }
 
@@ -113,6 +138,11 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
         repetir: rascunho.repetir,
         foto_url: rascunho.foto_url,
         nota_id: rascunho.nota_id,
+        etiqueta_ids: rascunho.etiqueta_ids,
+        avisos: rascunho.avisos.length ? rascunho.avisos : [0],
+        // Mexeu no lembrete: os avisos já enviados voltam à estaca zero,
+        // senão mudar a data de amanhã pra semana que vem nunca mais avisaria.
+        avisos_enviados: [],
         // Editar um lembrete re-arma a notificação dele
         notificado_em: null,
         concluido: false,
@@ -159,6 +189,7 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
                   id: l.id, titulo: l.titulo, data: format(q, 'yyyy-MM-dd'),
                   hora: format(q, 'HH:mm'), repetir: l.repetir,
                   foto_url: l.foto_url, nota_id: l.nota_id,
+                  etiqueta_ids: l.etiqueta_ids || [], avisos: l.avisos?.length ? l.avisos : [0],
                 })
               }}
             >
@@ -179,7 +210,14 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
                     {notas.find((n) => n.id === l.nota_id)?.titulo || 'nota'}
                   </span>
                 )}
+                {l.avisos?.some((a) => a > 0) && (
+                  <span className="flex items-center gap-0.5 text-primary/80">
+                    <BellRing size={11} />
+                    {rotuloAviso(Math.max(...l.avisos))}
+                  </span>
+                )}
               </p>
+              <div className="mt-1"><EtiquetasDoItem ids={l.etiqueta_ids} todas={etiquetas} max={3} /></div>
             </button>
             {l.foto_url && <FotoMini caminho={l.foto_url} className="w-10 h-10 rounded-lg object-cover shrink-0" />}
             <button
@@ -274,6 +312,51 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Avisos: dá pra marcar vários (1 dia antes E na hora) */}
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5"><BellRing size={13} /> Me avise</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {AVISOS.map((a) => {
+                    const marcado = rascunho.avisos.includes(a.min)
+                    return (
+                      <button
+                        key={a.min}
+                        type="button"
+                        onClick={() => setRascunho({
+                          ...rascunho,
+                          avisos: marcado
+                            ? rascunho.avisos.filter((m) => m !== a.min)
+                            : [...rascunho.avisos, a.min].sort((x, y) => y - x),
+                        })}
+                        className={`rounded-full border px-2.5 py-1 text-xs font-bold transition-colors ${
+                          marcado
+                            ? 'bg-primary/10 border-primary text-primary'
+                            : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                        }`}
+                      >
+                        {a.rotulo}
+                      </button>
+                    )
+                  })}
+                </div>
+                {rascunho.avisos.length === 0 && (
+                  <p className="text-[11px] text-amber-600 font-semibold">
+                    Sem nenhum aviso marcado, você não recebe notificação — vou usar “Na hora”.
+                  </p>
+                )}
+              </div>
+
+              {/* Etiquetas */}
+              <div className="space-y-1.5">
+                <Label>Etiquetas</Label>
+                <SeletorEtiquetas
+                  selecionadas={rascunho.etiqueta_ids}
+                  onMudar={(ids) => setRascunho({ ...rascunho, etiqueta_ids: ids })}
+                  etiquetas={etiquetas}
+                  onRecarregar={recarregarEtiquetas}
+                />
               </div>
 
               {/* Vincular a uma nota (opcional) */}

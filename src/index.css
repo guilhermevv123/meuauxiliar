@@ -87,3 +87,7 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 }
+
+/* Trilhos de filtro rolam na horizontal sem a barra feia atravessando o layout. */
+.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
