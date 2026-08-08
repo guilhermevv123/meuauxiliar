@@ -134,12 +134,16 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
             {/* Fechar = salvar (estilo Keep): nota não tem "cancelar", tem rascunho que persiste. */}
           </DialogHeader>
           {rascunho && (
-            <div className="space-y-3">
+            <div className="space-y-2">
+              {/* Título e corpo eram os dois `bg-transparent border-0`, sem
+                  divisa: quem clicava no meio caía no título e o texto do corpo
+                  ia parar colado no título. Uma linha separadora embaixo do
+                  título deixa os dois alvos inequívocos, no mouse e no toque. */}
               <Input
                 value={rascunho.titulo}
                 onChange={(e) => setRascunho({ ...rascunho, titulo: e.target.value })}
                 placeholder="Título"
-                className="bg-transparent border-0 text-lg font-black px-0 focus-visible:ring-0 placeholder:text-slate-600"
+                className="bg-transparent border-0 border-b border-navy-700 rounded-none text-lg font-black px-0 pb-2 focus-visible:ring-0 focus-visible:border-primary placeholder:text-slate-600"
               />
               <Textarea
                 value={rascunho.conteudo}
@@ -147,7 +151,7 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
                 placeholder="Escreva aqui…"
                 rows={10}
                 autoFocus={!rascunho.id}
-                className="bg-transparent border-0 px-0 focus-visible:ring-0 resize-none text-slate-200 placeholder:text-slate-600"
+                className="bg-transparent border-0 px-0 min-h-[220px] focus-visible:ring-0 resize-none text-slate-200 placeholder:text-slate-600"
               />
             </div>
           )}
