@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { CalendarDays, StickyNote, BellRing, Sparkles, LogOut, BellPlus, Check, WifiOff } from 'lucide-react'
+import { Home, CalendarDays, StickyNote, BellRing, Sparkles, LogOut, BellPlus, Check, WifiOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/integrations/supabase/client'
 import { ativarNotificacoes, statusNotificacoes } from '@/lib/push'
 import { useOnline } from '@/lib/useOnline'
+import AbaInicio from '@/components/abas/AbaInicio'
 import AbaAgenda from '@/components/abas/AbaAgenda'
 import AbaNotas from '@/components/abas/AbaNotas'
 import AbaLembretes from '@/components/abas/AbaLembretes'
@@ -14,9 +15,10 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-type Aba = 'agenda' | 'notas' | 'lembretes' | 'assistente'
+type Aba = 'inicio' | 'agenda' | 'notas' | 'lembretes' | 'assistente'
 
 const ABAS: Array<{ id: Aba; rotulo: string; Icone: typeof CalendarDays }> = [
+  { id: 'inicio', rotulo: 'Início', Icone: Home },
   { id: 'agenda', rotulo: 'Agenda', Icone: CalendarDays },
   { id: 'notas', rotulo: 'Notas', Icone: StickyNote },
   { id: 'lembretes', rotulo: 'Lembretes', Icone: BellRing },
@@ -29,7 +31,7 @@ const ABAS: Array<{ id: Aba; rotulo: string; Icone: typeof CalendarDays }> = [
  * rascunho da nota nem recarrega a agenda.
  */
 export default function Painel({ sessao }: { sessao: Session }) {
-  const [aba, setAba] = useState<Aba>('agenda')
+  const [aba, setAba] = useState<Aba>('inicio')
   const [temPush, setTemPush] = useState<boolean | null>(null)
   const online = useOnline()
 
@@ -140,6 +142,9 @@ export default function Painel({ sessao }: { sessao: Session }) {
 
         {/* Abas vivas: esconder com hidden preserva estado. */}
         <main className="flex-1 min-h-0 pb-24 lg:pb-0">
+          <div hidden={aba !== 'inicio'} className="h-full">
+            <AbaInicio ativa={aba === 'inicio'} nome={nome} irPara={setAba} />
+          </div>
           <div hidden={aba !== 'agenda'} className="h-full"><AbaAgenda ativa={aba === 'agenda'} /></div>
           <div hidden={aba !== 'notas'} className="h-full"><AbaNotas ativa={aba === 'notas'} /></div>
           <div hidden={aba !== 'lembretes'} className="h-full"><AbaLembretes ativa={aba === 'lembretes'} /></div>
@@ -150,7 +155,7 @@ export default function Painel({ sessao }: { sessao: Session }) {
 
         {/* Barra inferior (celular) */}
         <nav className="lg:hidden fixed bottom-0 inset-x-0 z-20 glass border-t pb-safe">
-          <div className="grid grid-cols-4">
+          <div className="grid grid-cols-5">
             {ABAS.map(({ id, rotulo, Icone }) => (
               <button
                 key={id}

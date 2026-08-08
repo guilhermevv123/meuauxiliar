@@ -111,6 +111,55 @@ export async function apagarLembrete(id: string): Promise<void> {
   if (error) throw error
 }
 
+// ── Resumo do dashboard (aba Início) ─────────────────────────────────
+export interface ResumoInicio {
+  hoje: Compromisso[]
+  amanha: Compromisso[]
+  lembretesPendentes: Lembrete[]
+  concluidosHoje: number
+  totalNotas: number
+}
+
+/**
+ * Uma foto do dia para a tela inicial. Busca em paralelo o que cada cartão
+ * precisa — uma ida por recurso, não uma por cartão.
+ */
+export async function resumoInicio(): Promise<ResumoInicio> {
+  const agora = new Date()
+  const inicioHoje = new Date(agora); inicioHoje.setHours(0, 0, 0, 0)
+  const inicioAmanha = new Date(inicioHoje); inicioAmanha.setDate(inicioAmanha.getDate() + 1)
+  const fimAmanha = new Date(inicioAmanha); fimAmanha.setDate(fimAmanha.getDate() + 1)
+
+  const [compsRes, lembRes, notasRes] = await Promise.all([
+    supabase.from('compromissos').select('*')
+      .gte('inicio', inicioHoje.toISOString()).lt('inicio', fimAmanha.toISOString())
+      .order('inicio'),
+    supabase.from('lembretes').select('*').eq('concluido', false).order('quando').limit(20),
+    supabase.from('notas').select('id', { count: 'exact', head: true }),
+  ])
+  if (compsRes.error) throw compsRes.error
+
+  const comps = (compsRes.data ?? []) as Compromisso[]
+  const ehDe = (c: Compromisso, ini: Date, fim: Date) => {
+    const t = new Date(c.inicio)
+    return t >= ini && t < fim
+  }
+  // "concluído hoje" = lembrete concluído cujo horário caiu hoje (proxy simples
+  // e honesto sem uma coluna de auditoria dedicada).
+  const { data: feitos } = await supabase
+    .from('lembretes').select('id')
+    .eq('concluido', true)
+    .gte('quando', inicioHoje.toISOString()).lt('quando', inicioAmanha.toISOString())
+
+  return {
+    hoje: comps.filter((c) => ehDe(c, inicioHoje, inicioAmanha)),
+    amanha: comps.filter((c) => ehDe(c, inicioAmanha, fimAmanha)),
+    lembretesPendentes: (lembRes.data ?? []) as Lembrete[],
+    concluidosHoje: feitos?.length ?? 0,
+    totalNotas: notasRes.count ?? 0,
+  }
+}
+
 /** Mensagem de erro apresentável (Supabase fala inglês; o app, português). */
 export function msgErro(e: unknown): string {
   const m = (e as { message?: string })?.message || ''
