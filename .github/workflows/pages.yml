@@ -17,37 +17,20 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: npm
-      - name: Create .env with Supabase secrets
-        run: |
-          printf "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}\n" >> .env
-          printf "VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}\n" >> .env
-          printf "VITE_OPENAI_API_KEY=${{ secrets.VITE_OPENAI_API_KEY }}\n" >> .env
-          printf "VITE_META_CAPI_TOKEN=${{ secrets.VITE_META_CAPI_TOKEN }}\n" >> .env
+      # Sem passo de secrets DE PROPÓSITO: o workflow antigo injetava
+      # VITE_OPENAI_API_KEY no bundle — a chave da OpenAI ia parar no
+      # navegador de qualquer visitante. Hoje ela vive só nas Edge Functions
+      # do Supabase; o front carrega apenas URL + chave anon (públicas).
       - run: npm ci
-      - name: Echo build context
-        run: |
-          node -v
-          npm -v
-          ls -la
       - run: npm run build -- --base=/
-      - name: Inspect built index
-        run: |
-          head -n 60 dist/index.html || sed -n '1,60p' dist/index.html || true
-      - name: Verify base paths
-        run: |
-          echo "Listing dist/assets:" && ls -la dist/assets || true
-          if grep -q "/meuauxiliar/" dist/index.html; then
-            echo "ERROR: index.html still references '/meuauxiliar/' base";
-            exit 1;
-          else
-            echo "OK: index.html uses root '/assets/' paths";
-          fi
       - name: Disable Jekyll
         run: echo > dist/.nojekyll
-      - name: Create CNAME for custom domain
+      - name: Custom domain
         run: echo "meuauxiliar.com" > dist/CNAME
+      # SPA no Pages: rota direta (ex. /login) cai no 404 do GitHub — servir o
+      # index no 404 devolve o app e o React Router assume.
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -60,5 +43,4 @@ jobs:
     needs: build
     steps:
       - id: deployment
-
         uses: actions/deploy-pages@v4

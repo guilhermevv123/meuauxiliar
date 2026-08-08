@@ -1,1 +1,6 @@
-project_id = "pfgcoifpqmwkvttllupt"
+project_id = "zxaiearxsuulhkfyybke"
+
+# O carteiro dos lembretes é chamado pelo cron do banco, sem JWT de usuário —
+# a porta dele é o CRON_SECRET conferido dentro da própria função.
+[functions.push-lembretes]
+verify_jwt = false

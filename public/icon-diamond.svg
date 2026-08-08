@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Diamond CRM">
+  <!--
+    ÍCONE MESTRE (favicon). Gerado nos demais formatos por
+    scripts/gera-icones.mjs — não edite os derivados à mão.
+
+    Marca SOLTA, sem moldura, num azul de meio-termo (#0284c7).
+
+    A escolha do tom não foi estética: foi medida. Contraste do glifo contra os
+    três fundos onde ele aparece — barra clara (#edf2f3), branco e barra escura
+    (#202124):
+
+        #0284c7   3.63 / 4.10 / 3.93   ← escolhido, melhor pior-caso
+        #0077b6   4.31 / 4.87 / 3.31
+        #0369a1   5.25 / 5.93 / 2.71   escuro cai abaixo do mínimo
+        #00b4d8   2.18 / 2.46 / 6.53   o ciano antigo: invisível no claro
+
+    O mínimo da WCAG para elemento gráfico é 3.0. O ciano original dava 2.18
+    contra a barra clara — some por medida, não por impressão. Ao mexer na cor,
+    refaça essa conta: um tom só fica bonito num dos fundos se ninguém olhar o
+    outro.
+  -->
+  <g transform="translate(7.6,504.4) scale(0.108,-0.108)">
+    <path fill="#0284c7" d="M1129 4262 l-45 -57 -205 -260 -205 -260 -46 -60 -47 -60 -260 -330 -261 -330 5 -12 4 -12 383 -477 383 -476 299 -372 299 -371 450 -563 451 -562 5 1 6 0 71 92 70 92 417 530 416 530 252 320 251 320 111 140 111 140 67 85 67 85 218 276 219 276 73 92 72 92 0 7 0 7 -952 -3 -952 -3 -15 -12 -14 -12 -88 -105 -88 -105 779 -5 779 -5 -52 -65 -52 -65 -170 -215 -170 -215 -55 -70 -55 -70 -114 -145 -114 -145 -76 -95 -75 -95 -51 -65 -52 -65 -243 -310 -244 -310 -180 -229 -180 -229 -37 44 -37 44 -158 196 -159 196 -305 378 -305 378 -95 117 -95 117 -137 169 -137 169 -239 295 -240 295 19 25 18 25 186 235 185 235 258 332 257 333 828 0 827 0 -216 -247 -217 -248 -83 -95 -82 -95 -78 -90 -78 -90 -155 -180 -155 -180 -100 -115 -99 -115 -20 -22 -19 -21 78 -94 78 -93 2 -3 2 -3 50 53 49 53 164 190 163 190 225 259 226 260 205 236 205 236 185 213 185 212 3 10 4 9 -1154 0 -1153 0 -46 -58z"/>
+  </g>
+</svg>

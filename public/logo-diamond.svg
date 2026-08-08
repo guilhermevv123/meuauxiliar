@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="dg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00b4d8"/>
+      <stop offset="50%" stop-color="#90e0ef"/>
+      <stop offset="100%" stop-color="#00b4d8"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer diamond shape -->
+  <path d="M60 10 L105 50 L60 110 L15 50 Z" stroke="url(#dg)" stroke-width="5" stroke-linejoin="round" fill="none"/>
+  <!-- Inner D facet - left vertical -->
+  <path d="M42 38 L42 82 L60 82 C78 82 88 68 88 60 C88 52 78 38 60 38 L42 38 Z" stroke="url(#dg)" stroke-width="4" stroke-linejoin="round" fill="none"/>
+</svg>
