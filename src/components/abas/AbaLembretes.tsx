@@ -3,6 +3,7 @@ import { format, isPast, isToday, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Plus, Trash2, Loader2, BellRing, Repeat } from 'lucide-react'
 import { toast } from 'sonner'
+import DiamondLoader from '@/components/DiamondLoader'
 import type { Lembrete } from '@/integrations/supabase/types'
 import { listarLembretes, salvarLembrete, alternarLembrete, apagarLembrete, msgErro } from '@/lib/dados'
 import { Button } from '@/components/ui/button'
@@ -106,13 +107,13 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
         {lista.map((l) => (
           <div
             key={l.id}
-            className="flex items-center gap-3 rounded-2xl bg-navy-900/70 border border-navy-800 px-3.5 py-3"
+            className="flex items-center gap-3 rounded-2xl card-base px-3.5 py-3"
           >
             <Checkbox
               checked={l.concluido}
               onCheckedChange={() => alternar(l)}
               aria-label={`Concluir ${l.titulo}`}
-              className="border-navy-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+              className="border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
             />
             <button
               className="min-w-0 flex-1 text-left"
@@ -124,7 +125,7 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
                 })
               }}
             >
-              <p className={`font-bold truncate ${l.concluido ? 'text-slate-500 line-through' : 'text-white'}`}>
+              <p className={`font-bold truncate ${l.concluido ? 'text-slate-400 line-through' : 'text-navy-900'}`}>
                 {l.titulo}
               </p>
               <p className="text-xs text-slate-400 flex items-center gap-1.5">
@@ -140,7 +141,7 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
             <button
               onClick={() => apagar(l.id)}
               aria-label="Apagar lembrete"
-              className="text-slate-600 hover:text-danger p-1.5"
+              className="text-slate-400 hover:text-danger p-1.5"
             >
               <Trash2 size={15} />
             </button>
@@ -152,19 +153,19 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
   return (
     <div className="max-w-3xl mx-auto px-4 py-5 space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-black text-white">Lembretes</h2>
-        <Button onClick={abrirNovo} size="sm" className="rounded-xl bg-primary text-navy-950 font-black hover:bg-primary/90">
+        <h2 className="text-xl font-black text-navy-900">Lembretes</h2>
+        <Button onClick={abrirNovo} size="sm" className="rounded-xl btn-gradient px-4 font-black">
           <Plus size={16} /> Novo
         </Button>
       </div>
 
       {carregando ? (
-        <div className="py-14 grid place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>
+        <div className="py-14"><DiamondLoader size={72} label="Carregando" /></div>
       ) : itens.length === 0 ? (
-        <div className="py-14 text-center rounded-2xl border border-dashed border-navy-700">
-          <BellRing className="mx-auto text-slate-600 mb-2" />
-          <p className="text-sm text-slate-500 font-medium">Nenhum lembrete.</p>
-          <p className="text-xs text-slate-600 mt-1">
+        <div className="py-14 text-center rounded-2xl border border-dashed border-slate-200">
+          <BellRing className="mx-auto text-slate-400 mb-2" />
+          <p className="text-sm text-slate-400 font-medium">Nenhum lembrete.</p>
+          <p className="text-xs text-slate-400 mt-1">
             Crie um e receba a notificação na hora certa — até com o app fechado.
           </p>
         </div>
@@ -173,12 +174,12 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
           <Grupo titulo="Atrasados" cor="text-danger" lista={grupos.atrasados} />
           <Grupo titulo="Hoje" cor="text-primary" lista={grupos.hoje} />
           <Grupo titulo="Próximos" cor="text-slate-400" lista={grupos.proximos} />
-          <Grupo titulo="Concluídos" cor="text-slate-600" lista={grupos.feitos} />
+          <Grupo titulo="Concluídos" cor="text-slate-400" lista={grupos.feitos} />
         </div>
       )}
 
       <Dialog open={!!rascunho} onOpenChange={(aberto) => !aberto && setRascunho(null)}>
-        <DialogContent className="bg-navy-900 border-navy-700 text-white rounded-2xl max-w-md">
+        <DialogContent className="bg-white border-slate-200 text-navy-900 rounded-2xl max-w-md">
           <DialogHeader>
             <DialogTitle className="font-black">{rascunho?.id ? 'Editar lembrete' : 'Novo lembrete'}</DialogTitle>
           </DialogHeader>
@@ -191,7 +192,7 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
                   onChange={(e) => setRascunho({ ...rascunho, titulo: e.target.value })}
                   placeholder="Pagar o boleto, ligar pro cliente…"
                   autoFocus
-                  className="bg-navy-950 border-navy-700 rounded-xl"
+                  className="bg-slate-50 border-slate-200 rounded-xl"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -201,7 +202,7 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
                     type="date"
                     value={rascunho.data}
                     onChange={(e) => setRascunho({ ...rascunho, data: e.target.value })}
-                    className="bg-navy-950 border-navy-700 rounded-xl"
+                    className="bg-slate-50 border-slate-200 rounded-xl"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -210,7 +211,7 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
                     type="time"
                     value={rascunho.hora}
                     onChange={(e) => setRascunho({ ...rascunho, hora: e.target.value })}
-                    className="bg-navy-950 border-navy-700 rounded-xl"
+                    className="bg-slate-50 border-slate-200 rounded-xl"
                   />
                 </div>
               </div>
@@ -220,10 +221,10 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
                   value={rascunho.repetir}
                   onValueChange={(v) => setRascunho({ ...rascunho, repetir: v as Rascunho['repetir'] })}
                 >
-                  <SelectTrigger className="bg-navy-950 border-navy-700 rounded-xl">
+                  <SelectTrigger className="bg-slate-50 border-slate-200 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-navy-900 border-navy-700 text-white">
+                  <SelectContent className="bg-white border-slate-200 text-navy-900">
                     {REPETICOES.map((r) => (
                       <SelectItem key={r.valor} value={r.valor}>{r.rotulo}</SelectItem>
                     ))}
@@ -234,7 +235,7 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
           )}
           <DialogFooter className="flex-row gap-2 justify-end">
             <Button variant="ghost" onClick={() => setRascunho(null)}>Cancelar</Button>
-            <Button onClick={salvar} disabled={salvando} className="bg-primary text-navy-950 font-black rounded-xl">
+            <Button onClick={salvar} disabled={salvando} className="btn-gradient rounded-xl">
               {salvando ? <Loader2 className="animate-spin" size={16} /> : 'Salvar'}
             </Button>
           </DialogFooter>

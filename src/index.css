@@ -2,48 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tokens shadcn no tema ESCURO Diamond — o app não tem modo claro. */
+/* ── Tema CLARO branco/azul (estilo Diamond CRM) ──────────────────────
+   Fundo #f6f7f8, cards brancos com borda slate e sombra suave, azul
+   Diamond (#00b4d8) como acento. Sem modo escuro. */
 @layer base {
   :root {
-    --background: 222 47% 6%;        /* navy-950/900 */
-    --foreground: 210 40% 98%;
-    --card: 222 47% 9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
-    --secondary: 217 33% 17%;        /* navy-800 */
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 14%;
-    --muted-foreground: 215 20% 65%;
+    --background: 210 20% 97%;       /* #f6f7f8 */
+    --foreground: 222 47% 11%;       /* navy-900 texto */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 16% 47%;
     --accent: 191 100% 42%;          /* diamond blue */
-    --accent-foreground: 222 47% 4%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 20% 90%;           /* slate-200 */
+    --input: 214 20% 90%;
     --ring: 191 100% 42%;
-    --radius: 0.75rem;
+    --radius: 0.9rem;
   }
 
   * { @apply border-border; }
 
-  html { color-scheme: dark; }
+  html { color-scheme: light; }
 
   body {
-    @apply bg-navy-950 text-foreground antialiased;
+    @apply text-foreground antialiased;
     font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    /* iOS instalado como app: o conteúdo não pode colar no notch */
-    padding-env: env(safe-area-inset-top);
+    /* Fundo com dois blobs de cor bem suaves — dá vida sem poluir. Fixo,
+       não rola com a página. */
+    background-color: #f6f7f8;
+    background-image:
+      radial-gradient(60rem 60rem at 110% -10%, rgba(0, 180, 216, 0.10), transparent 60%),
+      radial-gradient(50rem 50rem at -10% 110%, rgba(0, 119, 182, 0.08), transparent 55%);
+    background-attachment: fixed;
   }
 
-  /* rolagem discreta, mesma do CRM */
   ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-thumb { @apply bg-navy-700 rounded-full; }
+  ::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-slate-400; }
   ::-webkit-scrollbar-track { background: transparent; }
 }
 
+@layer components {
+  /* Card padrão do app: branco, borda slate, sombra suave, canto arredondado.
+     `card-hover` adiciona o leve levantar no hover (desktop). */
+  .card-base {
+    @apply bg-white border border-slate-200/80 rounded-2xl shadow-sm;
+  }
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5;
+  }
+
+  /* Vidro (glassmorphism) — usado na navegação e em barras fixas. */
+  .glass {
+    background: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.4);
+    @apply border-slate-200/70;
+  }
+
+  /* Botão primário com gradiente + sombra colorida (o "toque"). */
+  .btn-gradient {
+    @apply text-white font-black rounded-xl transition-all duration-200 active:scale-[0.98];
+    background-image: linear-gradient(135deg, #00b4d8, #0077b6);
+    box-shadow: 0 8px 20px -6px rgba(0, 119, 182, 0.5);
+  }
+  .btn-gradient:hover { box-shadow: 0 10px 26px -6px rgba(0, 119, 182, 0.62); }
+}
+
 @layer utilities {
-  /* respiro pro notch/home-indicator quando instalado no celular */
   .pt-safe { padding-top: env(safe-area-inset-top); }
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+  /* Aparição suave dos itens de lista/cards. */
+  .animate-rise { animation: rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 }

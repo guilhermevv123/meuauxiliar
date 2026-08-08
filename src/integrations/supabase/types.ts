@@ -22,6 +22,8 @@ export interface Nota {
   user_id: string
   titulo: string
   conteudo: string
+  topicos: string[]
+  foto_url: string | null
   fixada: boolean
   cor: string
   criado_em: string
@@ -36,6 +38,8 @@ export interface Lembrete {
   repetir: 'nunca' | 'diario' | 'semanal' | 'mensal'
   concluido: boolean
   notificado_em: string | null
+  foto_url: string | null
+  nota_id: string | null
   criado_em: string
 }
 

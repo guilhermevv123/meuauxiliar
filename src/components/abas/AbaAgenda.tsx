@@ -6,6 +6,7 @@ import {
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, MapPin, Trash2, Loader2, CalendarDays } from 'lucide-react'
 import { toast } from 'sonner'
+import DiamondLoader from '@/components/DiamondLoader'
 import type { Compromisso } from '@/integrations/supabase/types'
 import { listarCompromissos, salvarCompromisso, apagarCompromisso, msgErro } from '@/lib/dados'
 import { Button } from '@/components/ui/button'
@@ -136,7 +137,7 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
     <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
       {/* Cabeçalho do mês */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-black text-white capitalize">
+        <h2 className="text-xl font-black text-navy-900 capitalize">
           {format(mes, 'MMMM yyyy', { locale: ptBR })}
         </h2>
         <div className="flex items-center gap-1">
@@ -157,10 +158,10 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
       </div>
 
       {/* Grade do calendário */}
-      <div className="rounded-2xl bg-navy-900/70 border border-navy-800 p-3">
+      <div className="rounded-2xl card-base p-3">
         <div className="grid grid-cols-7 mb-1">
           {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-            <span key={i} className="text-center text-[10px] font-black text-slate-500 uppercase">{d}</span>
+            <span key={i} className="text-center text-[10px] font-black text-slate-400 uppercase">{d}</span>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
@@ -172,10 +173,10 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
                 key={dia.toISOString()}
                 onClick={() => { setDiaSel(dia); if (!isSameMonth(dia, mes)) setMes(startOfMonth(dia)) }}
                 className={`h-11 sm:h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 text-sm transition-colors ${
-                  selecionado ? 'bg-primary text-navy-950 font-black'
+                  selecionado ? 'bg-gradient-to-br from-primary to-primary-dark text-white font-black shadow-sm'
                   : isToday(dia) ? 'bg-primary/15 text-primary font-black'
-                  : isSameMonth(dia, mes) ? 'text-slate-200 hover:bg-navy-800 font-semibold'
-                  : 'text-slate-600 hover:bg-navy-800/50'
+                  : isSameMonth(dia, mes) ? 'text-slate-700 hover:bg-slate-100 font-semibold'
+                  : 'text-slate-400 hover:bg-slate-50'
                 }`}
               >
                 {format(dia, 'd')}
@@ -183,7 +184,7 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
                   {doDiaAqui.slice(0, 3).map((c) => (
                     <span
                       key={c.id}
-                      className={`w-1.5 h-1.5 rounded-full ${selecionado ? 'bg-navy-950/70' : CORES[c.cor] ?? 'bg-sky-500'}`}
+                      className={`w-1.5 h-1.5 rounded-full ${selecionado ? 'bg-white/70' : CORES[c.cor] ?? 'bg-sky-500'}`}
                     />
                   ))}
                 </span>
@@ -196,32 +197,32 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
       {/* Lista do dia selecionado */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-black text-slate-300 capitalize">
+          <h3 className="text-sm font-black text-slate-400 capitalize">
             {format(diaSel, "EEEE, d 'de' MMMM", { locale: ptBR })}
           </h3>
-          <Button onClick={abrirNovo} size="sm" className="rounded-xl bg-primary text-navy-950 font-black hover:bg-primary/90">
+          <Button onClick={abrirNovo} size="sm" className="rounded-xl btn-gradient px-4 font-black">
             <Plus size={16} /> Novo
           </Button>
         </div>
 
         {carregando ? (
-          <div className="py-10 grid place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>
+          <div className="py-10"><DiamondLoader size={72} label="Carregando" /></div>
         ) : doDia.length === 0 ? (
-          <div className="py-10 text-center rounded-2xl border border-dashed border-navy-700">
-            <CalendarDays className="mx-auto text-slate-600 mb-2" />
-            <p className="text-sm text-slate-500 font-medium">Nada marcado para este dia.</p>
-            <p className="text-xs text-slate-600 mt-1">Toque em “Novo” ou peça à assistente.</p>
+          <div className="py-10 text-center rounded-2xl border border-dashed border-slate-200">
+            <CalendarDays className="mx-auto text-slate-400 mb-2" />
+            <p className="text-sm text-slate-400 font-medium">Nada marcado para este dia.</p>
+            <p className="text-xs text-slate-400 mt-1">Toque em “Novo” ou peça à assistente.</p>
           </div>
         ) : (
           doDia.map((c) => (
             <button
               key={c.id}
               onClick={() => abrirEdicao(c)}
-              className="w-full flex items-center gap-3 rounded-2xl bg-navy-900/70 border border-navy-800 p-3.5 text-left hover:border-primary/40 transition-colors"
+              className="w-full flex items-center gap-3 rounded-2xl card-base p-3.5 text-left hover:border-primary/40 transition-colors"
             >
               <span className={`w-1 self-stretch rounded-full ${CORES[c.cor] ?? 'bg-sky-500'}`} />
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-white truncate">{c.titulo}</p>
+                <p className="font-bold text-navy-900 truncate">{c.titulo}</p>
                 <p className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
                   <span>
                     {c.dia_inteiro
@@ -240,7 +241,7 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
 
       {/* Criar / editar */}
       <Dialog open={!!rascunho} onOpenChange={(aberto) => !aberto && setRascunho(null)}>
-        <DialogContent className="bg-navy-900 border-navy-700 text-white rounded-2xl max-w-md">
+        <DialogContent className="bg-white border-slate-200 text-navy-900 rounded-2xl max-w-md">
           <DialogHeader>
             <DialogTitle className="font-black">
               {rascunho?.id ? 'Editar compromisso' : 'Novo compromisso'}
@@ -255,7 +256,7 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
                   onChange={(e) => setRascunho({ ...rascunho, titulo: e.target.value })}
                   placeholder="Reunião com…"
                   autoFocus
-                  className="bg-navy-950 border-navy-700 rounded-xl"
+                  className="bg-slate-50 border-slate-200 rounded-xl"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -265,10 +266,10 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
                     type="date"
                     value={rascunho.data}
                     onChange={(e) => setRascunho({ ...rascunho, data: e.target.value })}
-                    className="bg-navy-950 border-navy-700 rounded-xl"
+                    className="bg-slate-50 border-slate-200 rounded-xl"
                   />
                 </div>
-                <div className="flex items-center justify-between rounded-xl border border-navy-700 px-3">
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3">
                   <Label htmlFor="dia-inteiro" className="text-xs">Dia inteiro</Label>
                   <Switch
                     id="dia-inteiro"
@@ -285,36 +286,36 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
                       type="time"
                       value={rascunho.hora}
                       onChange={(e) => setRascunho({ ...rascunho, hora: e.target.value })}
-                      className="bg-navy-950 border-navy-700 rounded-xl"
+                      className="bg-slate-50 border-slate-200 rounded-xl"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Fim <span className="text-slate-500">(opcional)</span></Label>
+                    <Label>Fim <span className="text-slate-400">(opcional)</span></Label>
                     <Input
                       type="time"
                       value={rascunho.horaFim}
                       onChange={(e) => setRascunho({ ...rascunho, horaFim: e.target.value })}
-                      className="bg-navy-950 border-navy-700 rounded-xl"
+                      className="bg-slate-50 border-slate-200 rounded-xl"
                     />
                   </div>
                 </div>
               )}
               <div className="space-y-1.5">
-                <Label>Local <span className="text-slate-500">(opcional)</span></Label>
+                <Label>Local <span className="text-slate-400">(opcional)</span></Label>
                 <Input
                   value={rascunho.local}
                   onChange={(e) => setRascunho({ ...rascunho, local: e.target.value })}
                   placeholder="Escritório, Meet…"
-                  className="bg-navy-950 border-navy-700 rounded-xl"
+                  className="bg-slate-50 border-slate-200 rounded-xl"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Descrição <span className="text-slate-500">(opcional)</span></Label>
+                <Label>Descrição <span className="text-slate-400">(opcional)</span></Label>
                 <Textarea
                   value={rascunho.descricao}
                   onChange={(e) => setRascunho({ ...rascunho, descricao: e.target.value })}
                   rows={2}
-                  className="bg-navy-950 border-navy-700 rounded-xl resize-none"
+                  className="bg-slate-50 border-slate-200 rounded-xl resize-none"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -324,7 +325,7 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
                     onClick={() => setRascunho({ ...rascunho, cor: nome })}
                     aria-label={`Cor ${nome}`}
                     className={`w-7 h-7 rounded-full ${classe} ${
-                      rascunho.cor === nome ? 'ring-2 ring-white ring-offset-2 ring-offset-navy-900' : 'opacity-60'
+                      rascunho.cor === nome ? 'ring-2 ring-white ring-offset-2 ring-offset-white' : 'opacity-60'
                     }`}
                   />
                 ))}
@@ -338,7 +339,7 @@ export default function AbaAgenda({ ativa }: { ativa: boolean }) {
               </Button>
             )}
             <Button variant="ghost" onClick={() => setRascunho(null)}>Cancelar</Button>
-            <Button onClick={salvar} disabled={salvando} className="bg-primary text-navy-950 font-black rounded-xl">
+            <Button onClick={salvar} disabled={salvando} className="btn-gradient rounded-xl">
               {salvando ? <Loader2 className="animate-spin" size={16} /> : 'Salvar'}
             </Button>
           </DialogFooter>

@@ -121,8 +121,8 @@ export default function AbaAssistente({ ativa, nome }: { ativa: boolean; nome: s
             <Sparkles size={18} />
           </span>
           <div className="leading-tight">
-            <p className="font-black text-white">Assistente</p>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            <p className="font-black text-navy-900">Assistente</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               agenda · notas · lembretes
             </p>
           </div>
@@ -130,7 +130,7 @@ export default function AbaAssistente({ ativa, nome }: { ativa: boolean; nome: s
         <button
           onClick={alternarMudo}
           aria-label={falarRespostas ? 'Silenciar respostas' : 'Falar respostas'}
-          className={`p-2 rounded-xl ${falarRespostas ? 'text-primary bg-primary/10' : 'text-slate-500 bg-navy-800'}`}
+          className={`p-2 rounded-xl ${falarRespostas ? 'text-primary bg-primary/10' : 'text-slate-400 bg-slate-100'}`}
         >
           {falarRespostas ? <Volume2 size={18} /> : <VolumeX size={18} />}
         </button>
@@ -141,7 +141,7 @@ export default function AbaAssistente({ ativa, nome }: { ativa: boolean; nome: s
         {msgs.length === 0 && !pensando && (
           <div className="pt-10 text-center space-y-5">
             <p className="text-slate-400 font-medium">
-              Oi, {nome}! Me diga o que precisa — <span className="text-white font-bold">falando</span> ou
+              Oi, {nome}! Me diga o que precisa — <span className="text-navy-900 font-bold">falando</span> ou
               escrevendo — que eu marco, anoto e te lembro.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
@@ -149,7 +149,7 @@ export default function AbaAssistente({ ativa, nome }: { ativa: boolean; nome: s
                 <button
                   key={s}
                   onClick={() => enviar(s, false)}
-                  className="px-3 py-1.5 rounded-full border border-navy-700 text-xs font-bold text-slate-300 hover:border-primary hover:text-primary transition-colors"
+                  className="px-3 py-1.5 rounded-full border border-slate-200 text-xs font-bold text-slate-400 hover:border-primary hover:text-primary transition-colors"
                 >
                   {s}
                 </button>
@@ -162,8 +162,8 @@ export default function AbaAssistente({ ativa, nome }: { ativa: boolean; nome: s
             <div
               className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
                 m.papel === 'user'
-                  ? 'bg-primary text-navy-950 font-semibold rounded-br-md'
-                  : 'bg-navy-800 text-slate-100 rounded-bl-md'
+                  ? 'bg-gradient-to-br from-primary to-primary-dark text-white font-semibold rounded-br-md shadow-sm shadow-primary/20'
+                  : 'bg-white border border-slate-200 text-slate-700 rounded-bl-md shadow-sm'
               }`}
             >
               {m.conteudo}
@@ -172,7 +172,7 @@ export default function AbaAssistente({ ativa, nome }: { ativa: boolean; nome: s
         ))}
         {pensando && (
           <div className="flex justify-start">
-            <div className="bg-navy-800 rounded-2xl rounded-bl-md px-4 py-3 flex gap-1.5">
+            <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-md px-4 py-3 flex gap-1.5">
               {[0, 150, 300].map((d) => (
                 <span
                   key={d}
@@ -194,20 +194,20 @@ export default function AbaAssistente({ ativa, nome }: { ativa: boolean; nome: s
           </p>
         )}
         <div className="flex items-end gap-2">
-          <div className="flex-1 flex items-center bg-navy-900 border border-navy-700 rounded-2xl pl-4 pr-1.5 py-1.5 focus-within:border-primary/60">
+          <div className="flex-1 flex items-center bg-white border border-slate-200 rounded-2xl pl-4 pr-1.5 py-1.5 focus-within:border-primary/60">
             <input
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && enviar(texto, false)}
               placeholder={transcrevendo ? 'Transcrevendo…' : 'Escreva ou toque no microfone'}
               disabled={gravando || transcrevendo}
-              className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-slate-500 disabled:opacity-60"
+              className="flex-1 bg-transparent outline-none text-sm text-navy-900 placeholder:text-slate-400 disabled:opacity-60"
             />
             <button
               onClick={() => enviar(texto, false)}
               disabled={!texto.trim() || pensando}
               aria-label="Enviar"
-              className="p-2 rounded-xl text-primary disabled:text-slate-600"
+              className="p-2 rounded-xl text-primary disabled:text-slate-400"
             >
               <Send size={18} />
             </button>
@@ -218,8 +218,8 @@ export default function AbaAssistente({ ativa, nome }: { ativa: boolean; nome: s
             aria-label={gravando ? 'Parar e enviar' : 'Falar com a assistente'}
             className={`w-12 h-12 rounded-2xl grid place-items-center transition-colors shrink-0 ${
               gravando
-                ? 'bg-danger text-white'
-                : 'bg-gradient-to-br from-primary to-primary-dark text-navy-950'
+                ? 'bg-danger text-navy-900'
+                : 'bg-gradient-to-br from-primary to-primary-dark text-white'
             } disabled:opacity-50`}
           >
             {transcrevendo ? (

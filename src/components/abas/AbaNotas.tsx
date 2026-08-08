@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Plus, Pin, PinOff, Trash2, Loader2, StickyNote, Search } from 'lucide-react'
 import { toast } from 'sonner'
+import DiamondLoader from '@/components/DiamondLoader'
 import type { Nota } from '@/integrations/supabase/types'
 import { listarNotas, salvarNota, apagarNota, msgErro } from '@/lib/dados'
 import { Button } from '@/components/ui/button'
@@ -67,31 +68,31 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
     <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar nas notas…"
-            className="pl-9 bg-navy-900 border-navy-700 rounded-xl"
+            className="pl-9 bg-white border-slate-200 rounded-xl"
           />
         </div>
         <Button
           onClick={() => setRascunho({ titulo: '', conteudo: '', fixada: false })}
-          className="rounded-xl bg-primary text-navy-950 font-black hover:bg-primary/90 shrink-0"
+          className="rounded-xl btn-gradient px-4 font-black shrink-0"
         >
           <Plus size={16} /> Nova
         </Button>
       </div>
 
       {carregando ? (
-        <div className="py-14 grid place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>
+        <div className="py-14"><DiamondLoader size={72} label="Carregando" /></div>
       ) : filtradas.length === 0 ? (
-        <div className="py-14 text-center rounded-2xl border border-dashed border-navy-700">
-          <StickyNote className="mx-auto text-slate-600 mb-2" />
-          <p className="text-sm text-slate-500 font-medium">
+        <div className="py-14 text-center rounded-2xl border border-dashed border-slate-200">
+          <StickyNote className="mx-auto text-slate-400 mb-2" />
+          <p className="text-sm text-slate-400 font-medium">
             {busca ? 'Nenhuma nota bate com a busca.' : 'Nenhuma nota ainda.'}
           </p>
-          {!busca && <p className="text-xs text-slate-600 mt-1">Anote qualquer coisa — ou dite pra assistente.</p>}
+          {!busca && <p className="text-xs text-slate-400 mt-1">Anote qualquer coisa — ou dite pra assistente.</p>}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -102,15 +103,15 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
               tabIndex={0}
               onClick={() => setRascunho({ id: n.id, titulo: n.titulo, conteudo: n.conteudo, fixada: n.fixada })}
               onKeyDown={(e) => e.key === 'Enter' && setRascunho({ id: n.id, titulo: n.titulo, conteudo: n.conteudo, fixada: n.fixada })}
-              className="group rounded-2xl bg-navy-900/70 border border-navy-800 p-4 cursor-pointer hover:border-primary/40 transition-colors"
+              className="group rounded-2xl card-base p-4 cursor-pointer hover:border-primary/40 transition-colors"
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="font-bold text-white truncate">{n.titulo || 'Sem título'}</p>
+                <p className="font-bold text-navy-900 truncate">{n.titulo || 'Sem título'}</p>
                 <button
                   onClick={(e) => { e.stopPropagation(); void alternarFixada(n) }}
                   aria-label={n.fixada ? 'Desafixar' : 'Fixar'}
                   className={`p-1 rounded-lg shrink-0 ${
-                    n.fixada ? 'text-primary' : 'text-slate-600 opacity-0 group-hover:opacity-100 hover:text-primary'
+                    n.fixada ? 'text-primary' : 'text-slate-400 opacity-0 group-hover:opacity-100 hover:text-primary'
                   } transition-opacity`}
                 >
                   {n.fixada ? <Pin size={15} /> : <PinOff size={15} />}
@@ -119,7 +120,7 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
               {n.conteudo && (
                 <p className="text-sm text-slate-400 mt-1 line-clamp-4 whitespace-pre-wrap">{n.conteudo}</p>
               )}
-              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-600 mt-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-2.5">
                 {format(parseISO(n.atualizado_em), "d MMM · HH:mm", { locale: ptBR })}
               </p>
             </div>
@@ -128,7 +129,7 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
       )}
 
       <Dialog open={!!rascunho} onOpenChange={(aberto) => { if (!aberto) void salvar() }}>
-        <DialogContent className="bg-navy-900 border-navy-700 text-white rounded-2xl max-w-lg">
+        <DialogContent className="bg-white border-slate-200 text-navy-900 rounded-2xl max-w-lg">
           <DialogHeader>
             <DialogTitle className="sr-only">Nota</DialogTitle>
             {/* Fechar = salvar (estilo Keep): nota não tem "cancelar", tem rascunho que persiste. */}
@@ -143,7 +144,7 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
                 value={rascunho.titulo}
                 onChange={(e) => setRascunho({ ...rascunho, titulo: e.target.value })}
                 placeholder="Título"
-                className="bg-transparent border-0 border-b border-navy-700 rounded-none text-lg font-black px-0 pb-2 focus-visible:ring-0 focus-visible:border-primary placeholder:text-slate-600"
+                className="bg-transparent border-0 border-b border-slate-200 rounded-none text-lg font-black px-0 pb-2 focus-visible:ring-0 focus-visible:border-primary placeholder:text-slate-400"
               />
               <Textarea
                 value={rascunho.conteudo}
@@ -151,7 +152,7 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
                 placeholder="Escreva aqui…"
                 rows={10}
                 autoFocus={!rascunho.id}
-                className="bg-transparent border-0 px-0 min-h-[220px] focus-visible:ring-0 resize-none text-slate-200 placeholder:text-slate-600"
+                className="bg-transparent border-0 px-0 min-h-[220px] focus-visible:ring-0 resize-none text-slate-700 placeholder:text-slate-400"
               />
             </div>
           )}
@@ -172,7 +173,7 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
             >
               <Pin size={16} className="mr-1" /> {rascunho?.fixada ? 'Fixada' : 'Fixar'}
             </Button>
-            <Button onClick={salvar} disabled={salvando} className="bg-primary text-navy-950 font-black rounded-xl">
+            <Button onClick={salvar} disabled={salvando} className="btn-gradient rounded-xl">
               {salvando ? <Loader2 className="animate-spin" size={16} /> : 'Salvar'}
             </Button>
           </DialogFooter>

@@ -6,6 +6,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import Login from '@/pages/Login'
 import Painel from '@/pages/Painel'
+import DiamondLoader from '@/components/DiamondLoader'
 
 /**
  * Só duas rotas: /login e o app. A sessão vem do Supabase e é observada — o
@@ -29,11 +30,7 @@ export default function App() {
   }, [])
 
   if (carregando) {
-    return (
-      <div className="min-h-screen grid place-items-center bg-navy-950">
-        <img src="/icon-diamond.svg" alt="" className="w-12 h-12 animate-pulse-soft" />
-      </div>
-    )
+    return <DiamondLoader fullScreen size={128} label="Carregando" />
   }
 
   return (

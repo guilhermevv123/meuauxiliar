@@ -88,6 +88,9 @@ Deno.serve(async (req) => {
           voice: VOZ,
           input: texto,
           response_format: 'mp3',
+          // Fala mais ágil — a voz padrão soa arrastada para uso de assistente.
+          // 1.18 acelera sem virar "chipmunk". O front pode mandar outro valor.
+          speed: typeof corpo.speed === 'number' ? Math.min(2, Math.max(0.5, corpo.speed)) : 1.25,
         }),
       })
       if (!r.ok) {
