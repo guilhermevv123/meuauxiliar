@@ -34,6 +34,29 @@ jobs:
             sleep 1
           done
 
+      # Este passo existe por causa de um bug real: o healthcheck chamava
+      # "localhost" (resolve ::1) enquanto o nginx só escutava IPv4. O curl do
+      # host passava, então o CI ficava verde — mas o Swarm do EasyPanel via
+      # unhealthy e matava o container ~67s após subir. `docker run` puro não
+      # derruba container doente, por isso o estado precisa ser checado à mão.
+      - name: O container precisa ficar HEALTHY
+        run: |
+          set -e
+          for i in $(seq 1 60); do
+            S=$(docker inspect --format='{{.State.Health.Status}}' app)
+            echo "status: $S"
+            [ "$S" = "healthy" ] && exit 0
+            if [ "$S" = "unhealthy" ]; then
+              echo "::error::healthcheck falhou — o orquestrador mataria este container"
+              docker inspect --format='{{json .State.Health}}' app
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "::error::healthcheck não ficou saudável a tempo"
+          docker inspect --format='{{json .State.Health}}' app
+          exit 1
+
       - name: Smoke test — o app é servido mesmo
         run: |
           set -e

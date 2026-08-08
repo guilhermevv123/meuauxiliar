@@ -30,7 +30,12 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # interna é padrão e você mapeia pra onde quiser (-p 8080:80).
 EXPOSE 80
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
-  CMD wget -qO- http://localhost/ >/dev/null || exit 1
+# 127.0.0.1 explícito, NUNCA "localhost": dentro do container o localhost
+# resolve também para ::1, e o busybox wget tenta o IPv6 primeiro. Como o
+# nginx só escutava IPv4, o check tomava "connection refused", o Docker
+# marcava unhealthy e o orquestrador (Swarm do EasyPanel) matava o container
+# ~67s depois de subir — parecia erro de build, era o healthcheck.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget -qO /dev/null http://127.0.0.1/ || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
