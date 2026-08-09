@@ -59,7 +59,14 @@ Deno.serve(async (req) => {
         return Response.json({ erro: 'Áudio longo demais.' }, { status: 413, headers: CORS })
       }
       const mime = String(corpo.mime || 'audio/webm')
-      const ext = mime.includes('mp4') ? 'mp4' : mime.includes('mpeg') ? 'mp3' : 'webm'
+      // A extensão precisa bater com o CONTEÚDO: a OpenAI valida o container e
+      // rejeita um RIFF/WAV chamado .webm (foi um bug real — o app desktop
+      // manda wav e todo STT dele voltava "não consegui transcrever").
+      const ext = mime.includes('mp4') ? 'mp4'
+        : mime.includes('mpeg') ? 'mp3'
+        : mime.includes('wav') ? 'wav'
+        : mime.includes('ogg') ? 'ogg'
+        : 'webm'
       const fd = new FormData()
       fd.append('file', new Blob([bytes.buffer as ArrayBuffer], { type: mime }), `fala.${ext}`)
       fd.append('model', 'gpt-4o-mini-transcribe')
