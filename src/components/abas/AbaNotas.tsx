@@ -10,6 +10,7 @@ import { listarNotas, salvarNota, apagarNota, msgErro } from '@/lib/dados'
 import { subirFoto, urlDaFoto, apagarFoto } from '@/lib/fotos'
 import DiamondLoader from '@/components/DiamondLoader'
 import SeletorEtiquetas, { EtiquetasDoItem, useEtiquetas } from '@/components/SeletorEtiquetas'
+import AlternadorVisao, { ColunaKanban, useVisao } from '@/components/AlternadorVisao'
 import { corDe } from '@/lib/etiquetas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,6 +44,7 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
   const [subindoFoto, setSubindoFoto] = useState(false)
   const [novoTopico, setNovoTopico] = useState('')
   const { etiquetas, recarregar: recarregarEtiquetas } = useEtiquetas(ativa)
+  const { visao, setVisao } = useVisao('notas')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const carregar = useCallback(async () => {
@@ -144,6 +146,62 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
     setNovoTopico('')
   }
 
+  /**
+   * Arrastar no kanban. Guarda de QUAL coluna o card saiu: uma nota com duas
+   * etiquetas aparece em duas colunas, e "mover" precisa tirar só a de origem
+   * — trocar o array inteiro apagaria a outra etiqueta sem a pessoa pedir.
+   */
+  const arrastando = useRef<{ id: string; origem: string | null } | null>(null)
+
+  const soltarEm = async (destino: string | null) => {
+    const arr = arrastando.current
+    arrastando.current = null
+    if (!arr) return
+    const nota = notas.find((n) => n.id === arr.id)
+    if (!nota) return
+    const atuais = nota.etiqueta_ids ?? []
+    let novas = arr.origem ? atuais.filter((e) => e !== arr.origem) : [...atuais]
+    if (destino && !novas.includes(destino)) novas = [...novas, destino]
+    if (JSON.stringify(novas) === JSON.stringify(atuais)) return
+
+    // otimista: o card pula de coluna na hora, o servidor confirma depois
+    setNotas((xs) => xs.map((n) => (n.id === nota.id ? { ...n, etiqueta_ids: novas } : n)))
+    try { await salvarNota({ id: nota.id, etiqueta_ids: novas }) }
+    catch (e) { toast.error(msgErro(e)); void carregar() }
+  }
+
+  /** Card compacto do kanban — a coluna é estreita, então o card enxuga. */
+  const CardKanban = ({ n, coluna }: { n: Nota; coluna: string | null }) => (
+    <div
+      role="button" tabIndex={0}
+      draggable
+      onDragStart={() => { arrastando.current = { id: n.id, origem: coluna } }}
+      onDragEnd={() => { arrastando.current = null }}
+      onClick={() => abrirEdicao(n)}
+      onKeyDown={(e) => e.key === 'Enter' && abrirEdicao(n)}
+      className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing"
+    >
+      {n.foto_url && (
+        <FotoNota caminho={n.foto_url} className="mb-2 h-20 w-full rounded-lg object-cover" />
+      )}
+      <div className="flex items-start justify-between gap-1.5">
+        <p className="truncate text-sm font-bold text-navy-900">{n.titulo || 'Sem título'}</p>
+        {n.fixada && <Pin size={12} className="mt-0.5 shrink-0 text-primary" />}
+      </div>
+      {n.conteudo && (
+        <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-xs text-slate-500">{n.conteudo}</p>
+      )}
+      {n.topicos?.length > 0 && (
+        <p className="mt-1 text-[11px] font-semibold text-slate-400">
+          {n.topicos.length} {n.topicos.length === 1 ? 'tópico' : 'tópicos'}
+        </p>
+      )}
+      <div className="mt-1.5">
+        <EtiquetasDoItem ids={n.etiqueta_ids} todas={etiquetas} max={2} />
+      </div>
+    </div>
+  )
+
   /** Grade de cards — mesma marcação para "Fixadas" e "Outras". */
   const Grade = ({ notas: lista }: { notas: Nota[] }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -207,8 +265,9 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
             className="pl-9 bg-white border-slate-200 rounded-xl"
           />
         </div>
-        <Button onClick={abrirNovo} className="btn-gradient px-4 shrink-0">
-          <Plus size={16} /> Nova
+        <AlternadorVisao visao={visao} onMudar={setVisao} />
+        <Button onClick={abrirNovo} className="btn-gradient px-3 shrink-0">
+          <Plus size={16} /> <span className="hidden sm:inline">Nova</span>
         </Button>
       </div>
 
@@ -253,6 +312,43 @@ export default function AbaNotas({ ativa }: { ativa: boolean }) {
             {busca ? 'Nenhuma nota bate com a busca.' : 'Nenhuma nota ainda.'}
           </p>
           {!busca && <p className="text-xs text-slate-400 mt-1">Anote qualquer coisa — ou dite pra assistente.</p>}
+        </div>
+      ) : visao === 'kanban' ? (
+        /* Kanban: uma coluna por etiqueta + "Sem etiqueta".
+           Rola na horizontal — no celular as colunas passam de lado em vez
+           de espremer. */
+        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none">
+          {etiquetas.map((et) => {
+            const daColuna = filtradas.filter((n) => (n.etiqueta_ids ?? []).includes(et.id))
+            return (
+              <ColunaKanban
+                key={et.id}
+                titulo={et.nome}
+                cor={corDe(et.cor).bolinha}
+                contagem={daColuna.length}
+                onSoltar={() => void soltarEm(et.id)}
+              >
+                {daColuna.map((n) => <CardKanban key={n.id} n={n} coluna={et.id} />)}
+              </ColunaKanban>
+            )
+          })}
+          <ColunaKanban
+            titulo="Sem etiqueta"
+            contagem={filtradas.filter((n) => (n.etiqueta_ids ?? []).length === 0).length}
+            onSoltar={() => void soltarEm(null)}
+          >
+            {filtradas
+              .filter((n) => (n.etiqueta_ids ?? []).length === 0)
+              .map((n) => <CardKanban key={n.id} n={n} coluna={null} />)}
+          </ColunaKanban>
+
+          {etiquetas.length === 0 && (
+            <div className="grid place-items-center rounded-2xl border border-dashed border-slate-200 px-6 py-10 text-center">
+              <p className="text-sm font-medium text-slate-400">
+                Crie uma etiqueta pra ter colunas aqui.
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-5">

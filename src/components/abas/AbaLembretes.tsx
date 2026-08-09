@@ -5,6 +5,7 @@ import { Plus, Trash2, Loader2, BellRing, Repeat, ImagePlus, X, Link2 } from 'lu
 import { toast } from 'sonner'
 import DiamondLoader from '@/components/DiamondLoader'
 import SeletorEtiquetas, { EtiquetasDoItem, useEtiquetas } from '@/components/SeletorEtiquetas'
+import AlternadorVisao, { ColunaKanban, useVisao } from '@/components/AlternadorVisao'
 import type { Lembrete, Nota } from '@/integrations/supabase/types'
 import { listarLembretes, salvarLembrete, alternarLembrete, apagarLembrete, listarNotas, msgErro } from '@/lib/dados'
 import { subirFoto, urlDaFoto, apagarFoto } from '@/lib/fotos'
@@ -44,6 +45,15 @@ const AVISOS = [
   { min: 2880, rotulo: '2 dias antes' },
 ] as const
 
+type ChaveColuna = 'atrasados' | 'hoje' | 'proximos' | 'feitos'
+
+const COLUNAS: Array<{ chave: ChaveColuna; titulo: string; bolinha: string }> = [
+  { chave: 'atrasados', titulo: 'Atrasados', bolinha: 'bg-rose-500' },
+  { chave: 'hoje',      titulo: 'Hoje',      bolinha: 'bg-sky-500' },
+  { chave: 'proximos',  titulo: 'Próximos',  bolinha: 'bg-violet-500' },
+  { chave: 'feitos',    titulo: 'Concluídos', bolinha: 'bg-emerald-500' },
+]
+
 interface Rascunho {
   id?: string
   titulo: string
@@ -77,6 +87,7 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
   const [salvando, setSalvando] = useState(false)
   const [subindoFoto, setSubindoFoto] = useState(false)
   const { etiquetas, recarregar: recarregarEtiquetas } = useEtiquetas(ativa)
+  const { visao, setVisao } = useVisao('lembretes')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const carregar = useCallback(async () => {
@@ -166,6 +177,91 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
     catch (e) { toast.error(msgErro(e)) }
   }
 
+  /**
+   * Arrastar entre colunas do kanban REAGENDA o lembrete — não é enfeite:
+   *  • soltar em Concluídos marca como feito (e o contrário reabre);
+   *  • soltar em Hoje/Próximos move a data mantendo a HORA original, que é o
+   *    que a pessoa quer ao adiar ("mesma coisa, amanhã"), e zera os avisos
+   *    já enviados pra a notificação valer de novo na data nova.
+   */
+  const arrastando = useRef<string | null>(null)
+
+  const moverPara = async (destino: ChaveColuna) => {
+    const id = arrastando.current
+    arrastando.current = null
+    if (!id) return
+    const l = itens.find((x) => x.id === id)
+    if (!l) return
+
+    if (destino === 'feitos') {
+      if (l.concluido) return
+      return void alternar(l)
+    }
+    if (l.concluido) await alternarLembrete(l.id, false) // saiu de Concluídos
+
+    const atual = parseISO(l.quando)
+    const nova = new Date(atual)
+    const hoje = new Date()
+    if (destino === 'hoje') {
+      nova.setFullYear(hoje.getFullYear(), hoje.getMonth(), hoje.getDate())
+    } else if (destino === 'proximos') {
+      // "Próximos" = a partir de amanhã; só mexe se já não estiver no futuro.
+      if (!isPast(atual) && !isToday(atual)) { void carregar(); return }
+      nova.setFullYear(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1)
+    } else if (destino === 'atrasados') {
+      return // ninguém arrasta algo PARA atrasado de propósito
+    }
+
+    try {
+      await salvarLembrete({
+        id: l.id, titulo: l.titulo, quando: nova.toISOString(),
+        repetir: l.repetir, concluido: false,
+        avisos_enviados: [], notificado_em: null,
+      })
+      void carregar()
+    } catch (e) { toast.error(msgErro(e)); void carregar() }
+  }
+
+  const CardKanban = ({ l }: { l: Lembrete }) => (
+    <div
+      draggable
+      onDragStart={() => { arrastando.current = l.id }}
+      onDragEnd={() => { arrastando.current = null }}
+      className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing"
+    >
+      <div className="flex items-start gap-2">
+        <Checkbox
+          checked={l.concluido}
+          onCheckedChange={() => alternar(l)}
+          aria-label={`Concluir ${l.titulo}`}
+          className="mt-0.5 border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+        />
+        <button
+          onClick={() => {
+            const q = parseISO(l.quando)
+            setRascunho({
+              id: l.id, titulo: l.titulo, data: format(q, 'yyyy-MM-dd'),
+              hora: format(q, 'HH:mm'), repetir: l.repetir,
+              foto_url: l.foto_url, nota_id: l.nota_id,
+              etiqueta_ids: l.etiqueta_ids || [], avisos: l.avisos?.length ? l.avisos : [0],
+            })
+          }}
+          className="min-w-0 flex-1 text-left"
+        >
+          <p className={`truncate text-sm font-bold ${l.concluido ? 'text-slate-400 line-through' : 'text-navy-900'}`}>
+            {l.titulo}
+          </p>
+          <p className="text-[11px] text-slate-400">
+            {format(parseISO(l.quando), "d MMM · HH:mm", { locale: ptBR })}
+          </p>
+        </button>
+      </div>
+      <div className="mt-1.5 pl-6">
+        <EtiquetasDoItem ids={l.etiqueta_ids} todas={etiquetas} max={2} />
+      </div>
+    </div>
+  )
+
   const Grupo = ({ titulo, cor, lista }: { titulo: string; cor: string; lista: Lembrete[] }) =>
     lista.length === 0 ? null : (
       <div className="space-y-2">
@@ -234,10 +330,11 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-5 space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h2 className="text-xl font-black text-navy-900">Lembretes</h2>
-        <Button onClick={abrirNovo} size="sm" className="rounded-xl btn-gradient px-4 font-black">
-          <Plus size={16} /> Novo
+        <AlternadorVisao visao={visao} onMudar={setVisao} />
+        <Button onClick={abrirNovo} size="sm" className="rounded-xl btn-gradient px-3 font-black">
+          <Plus size={16} /> <span className="hidden sm:inline">Novo</span>
         </Button>
       </div>
 
@@ -250,6 +347,23 @@ export default function AbaLembretes({ ativa }: { ativa: boolean }) {
           <p className="text-xs text-slate-400 mt-1">
             Crie um e receba a notificação na hora certa — até com o app fechado.
           </p>
+        </div>
+      ) : visao === 'kanban' ? (
+        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none">
+          {COLUNAS.map((col) => {
+            const lista = grupos[col.chave]
+            return (
+              <ColunaKanban
+                key={col.chave}
+                titulo={col.titulo}
+                cor={col.bolinha}
+                contagem={lista.length}
+                onSoltar={() => void moverPara(col.chave)}
+              >
+                {lista.map((l) => <CardKanban key={l.id} l={l} />)}
+              </ColunaKanban>
+            )
+          })}
         </div>
       ) : (
         <div className="space-y-6">
